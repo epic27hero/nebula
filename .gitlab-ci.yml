@@ -1,15 +1,19 @@
 stages: [build, push, deploy]
 
+variables:
+  REGISTRY: 192.168.0.113:5000
+  IMAGE_NAME: fastapi-demo
+
 build:
   stage: build
   script:
-    - docker build -t fastapi-demo:${CI_COMMIT_SHORT_SHA} .
-    - docker tag fastapi-demo:${CI_COMMIT_SHORT_SHA} fastapi-demo:latest
+    - docker build -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
+    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
 
 push:
   stage: push
   script:
-    - docker push 192.168.0.113:5000/fastapi-demo:latest
+    - docker push ${REGISTRY}/${IMAGE_NAME}:latest
 
 deploy:
   stage: deploy
@@ -17,6 +21,7 @@ deploy:
     - argocd app sync fastapi-prod --insecure
   only:
     - master
+
   # when: manual  
   # environment:
   #   name: production  
