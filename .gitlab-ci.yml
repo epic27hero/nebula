@@ -14,7 +14,7 @@ build:
 push:
   stage: push
   script:
-    - docker push 192.168.0.113:5000/fastapi-demo:latest
+    - docker push ${REGISTRY}/${IMAGE_NAME}:latest
     # - docker push 192.168.0.113:5000/fastapi-demo:latest
 
 deploy:
