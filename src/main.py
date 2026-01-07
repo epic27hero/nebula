@@ -11,6 +11,7 @@ REQUEST_COUNT = Counter(
     "Total HTTP requests"
 )
 
+
 @app.middleware("http")
 async def count_requests(request, call_next):
     REQUEST_COUNT.inc()
