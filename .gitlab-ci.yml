@@ -8,12 +8,13 @@ build:
   stage: build
   script:
     - docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    # - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    - docker tag fastapi-demo:latest 192.168.0.113:5000/fastapi-demo:latest
 
 push:
   stage: push
   script:
-    - docker push http://192.168.0.113:5000/${IMAGE_NAME}:latest
+    - docker push 192.168.0.113:5000/fastapi-demo:latest
     # - docker push 192.168.0.113:5000/fastapi-demo:latest
 
 deploy:
