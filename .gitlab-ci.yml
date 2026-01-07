@@ -21,6 +21,7 @@ deploy:
     - argocd app sync fastapi-prod --insecure
   only:
     - master
+    
 
   # when: manual  
   # environment:
