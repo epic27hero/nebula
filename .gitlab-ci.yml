@@ -1,7 +1,7 @@
 stages: [build, push, deploy]
 
 variables:
-  REGISTRY: http://192.168.0.113:5000
+  REGISTRY: 192.168.0.113:5000
   IMAGE_NAME: fastapi-demo
 
 build:
@@ -13,7 +13,7 @@ build:
 push:
   stage: push
   script:
-    - docker push ${REGISTRY}/${IMAGE_NAME}:latest
+    - docker push http://192.168.0.113:5000/${IMAGE_NAME}:latest
     # - docker push 192.168.0.113:5000/fastapi-demo:latest
 
 deploy:
