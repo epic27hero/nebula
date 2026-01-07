@@ -1,0 +1,25 @@
+stages: [build, push, deploy]
+
+build:
+  stage: build
+  script:
+    - docker build -t fastapi-demo:${CI_COMMIT_SHORT_SHA} .
+    - docker tag fastapi-demo:${CI_COMMIT_SHORT_SHA} fastapi-demo:latest
+
+push:
+  stage: push
+  script:
+    - docker push 192.168.0.113:5000/fastapi-demo:latest
+
+deploy:
+  stage: deploy
+  script:
+    - argocd app sync fastapi-prod --insecure
+  only:
+    - master
+  # when: manual  
+  # environment:
+  #   name: production  
+  # dependencies:
+  #   - push
+  # before_script:

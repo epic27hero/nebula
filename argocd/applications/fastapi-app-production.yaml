@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi-prod
+  namespace: argocd
+spec:
+  project: fastapi-project
+  source:
+    repoURL: https://gitlab.com/your-org/fastapi-k8s-platform.git
+    path: helm/fastapi-app
+    targetRevision: main
+  destination:
+    namespace: production
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

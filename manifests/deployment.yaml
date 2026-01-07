@@ -1,0 +1,90 @@
+# Kubernetes Deployment Configuration
+# File: manifests/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-demo
+  namespace: production
+  labels:
+    app: fastapi-demo
+    version: v1
+spec:
+  # Number of pod replicas for load balancing
+  replicas: 3  # Creates 3 instances of your app
+  
+  # Strategy for updating pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max 1 extra pod during update
+      maxUnavailable: 1  # Max 1 pod down during update
+  
+  # Selector to match pods
+  selector:
+    matchLabels:
+      app: fastapi-demo
+  
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: fastapi-demo
+        version: v1
+      annotations:
+        # Force pod recreation on every deployment
+        rollout-timestamp: "TIMESTAMP_PLACEHOLDER"
+    spec:
+      containers:
+      - name: fastapi
+        # image: localhost:5000/fastapi-demo:latest
+        # image : 192.168.0.113:5000/fastapi-demo:latest
+        # image: 192.168.0.190:5000/root/testing_ci_project/fastapi-demo:latest
+        # image: 192.168.0.190:5005/root/testing_ci_project/fastapi-demo:${CI_COMMIT_SHORT_SHA}
+        # image: 192.168.0.190:5000/fastapi-demo:${CI_COMMIT_SHORT_SHA}
+        image: 192.168.0.113:5000/fastapi-demo:latest
+        imagePullPolicy: Always
+        
+        # Container port
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        
+        # Environment variables
+        env:
+        - name: ENV
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        
+        # Resource limits (adjust based on your needs)
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      
+      # Restart policy
+      restartPolicy: Always

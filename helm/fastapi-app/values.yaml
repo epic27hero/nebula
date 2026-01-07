@@ -1,0 +1,14 @@
+replicaCount: 3
+
+image:
+  repository: 192.168.0.113:5000/fastapi-demo
+  tag: latest
+
+service:
+  port: 80
+  targetPort: 8000
+  
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"  

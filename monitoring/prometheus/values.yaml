@@ -1,0 +1,37 @@
+server:
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+
+  retention: "15d"
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+alertmanager:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+pushgateway:
+  enabled: false
+
+extraScrapeConfigs: |
+  - job_name: "fastapi-app"
+    metrics_path: /metrics
+    kubernetes_sd_configs:
+    - role: pod
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+      action: keep
+      regex: fastapi-app

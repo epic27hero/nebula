@@ -1,0 +1,10 @@
+variable "kubeconfig_path" { default = "~/.kube/config" }
+variable "metallb_ip_range" { default = "192.168.0.200-192.168.0.250" }
+variable "enable_metallb" { default = true }
+variable "enable_argocd" { default = true }
+variable "enable_gateway_api" { default = true }
+variable "enable_metrics_server" { default = true }
+variable "enable_dashboard" { default = true }
+# variable "dashboard_admin_user" { default = "admin" }
+# variable "dashboard_admin_password" { default = "adminpassword" }
+# variable "argocd_admin_password" { default = "argopassword" }
