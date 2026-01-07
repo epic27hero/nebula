@@ -7,7 +7,7 @@ variables:
 build:
   stage: build
   script:
-    - docker build -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
+    - docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
     - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
 
 push:
