@@ -20,7 +20,7 @@ push:
 deploy:
   stage: deploy
   script:
-    - argocd app sync fastapi-prod --insecure
+    # - argocd app sync fastapi-prod --insecure
     - echo "Waiting for Gateway to be ready..."
     - |
       GATEWAY_IP=$(kubectl get gateway prod-gateway -n production \

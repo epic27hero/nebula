@@ -16,20 +16,27 @@
 # ]
 # }
 
+############################################
+# Namespace
+############################################
 resource "kubernetes_namespace_v1" "argocd" {
   metadata {
     name = "argocd"
   }
 }
 
+############################################
+# ArgoCD Installation (Helm)
+############################################
 resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
   version    = "7.7.12"
-  timeout    = 600
-  wait       = true
+
+  timeout = 600
+  wait    = true
 
   values = [
     yamlencode({
@@ -44,6 +51,7 @@ resource "helm_release" "argocd" {
           }
         }
       }
+
       controller = {
         resources = {
           requests = {
@@ -52,6 +60,7 @@ resource "helm_release" "argocd" {
           }
         }
       }
+
       repoServer = {
         resources = {
           requests = {
@@ -63,5 +72,41 @@ resource "helm_release" "argocd" {
     })
   ]
 
-  depends_on = [kubernetes_namespace_v1.argocd]
+  depends_on = [
+    kubernetes_namespace_v1.argocd
+  ]
+}
+
+############################################
+# ArgoCD Application (GitOps)
+############################################
+resource "kubectl_manifest" "fastapi_prod_app" {
+
+  depends_on = [
+    helm_release.argocd
+  ]
+
+  yaml_body = <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi-prod
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: http://192.168.0.190/your-group/fastapi-gitops.git
+    targetRevision: master
+    path: k8s/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
 }
