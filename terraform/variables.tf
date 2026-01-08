@@ -1,4 +1,7 @@
-variable "kubeconfig_path" { default = "~/.kube/config" }
+# variable "kubeconfig_path" { default = "~/.kube/config" }
+variable "kubeconfig_path" {
+  default = "/etc/rancher/k3s/k3s.yaml"
+}
 variable "metallb_ip_range" { default = "192.168.0.200-192.168.0.250" }
 variable "enable_metallb" { default = true }
 variable "enable_argocd" { default = true }

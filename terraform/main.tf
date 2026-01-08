@@ -1,6 +1,8 @@
-resource "kubernetes_namespace" "envs" {
+resource "kubernetes_namespace_v1" "envs" {
   for_each = toset(["development","staging","production"])
-  metadata { name = each.value }
+  metadata {
+    name = each.value
+  }
 }
 
 module "metallb" {
@@ -18,15 +20,15 @@ module "gateway" {
   count  = var.enable_gateway_api ? 1 : 0
   source = "./modules/gateway-api"
 }
-module "metrics_server" {
-  count  = var.enable_metrics_server ? 1 : 0
-  source = "./modules/metrics-server"
-} 
-module "kubernetes_dashboard" {
-  count  = var.enable_dashboard ? 1 : 0
-  source = "./modules/kubernetes-dashboard"
-}
-resource "kubernetes_namespace" "monitoring" {
+# module "metrics_server" {
+#   count  = var.enable_metrics_server ? 1 : 0
+#   source = "./modules/metrics-server"
+# } 
+# module "kubernetes_dashboard" {
+#   count  = var.enable_dashboard ? 1 : 0
+#   source = "./modules/kubernetes-dashboard"
+# }
+resource "kubernetes_namespace_v1" "monitoring" {
   metadata {
     name = "monitoring"
     labels = {
@@ -34,6 +36,11 @@ resource "kubernetes_namespace" "monitoring" {
     }
   }
 }
+# module "prometheus_stack" {
+#   count  = var.enable_prometheus_stack ? 1 : 0
+#   source = "./modules/prometheus-stack"
+#   namespace = kubernetes_namespace_v1.monitoring.metadata[0].name
+# }
 
 
 

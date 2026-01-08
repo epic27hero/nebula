@@ -21,8 +21,18 @@ deploy:
   stage: deploy
   script:
     - argocd app sync fastapi-prod --insecure
+    - echo "Waiting for Gateway to be ready..."
+    - |
+      GATEWAY_IP=$(kubectl get gateway prod-gateway -n production \
+        -o jsonpath='{.status.addresses[0].value}')
+      echo "======================================="
+      echo "FastAPI is available at:"
+      echo "http://${GATEWAY_IP}"
+      echo "Swagger UI: http://${GATEWAY_IP}/docs"
+      echo "======================================="
   only:
     - master
+
 
 
   # when: manual  
