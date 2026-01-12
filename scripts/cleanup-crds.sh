@@ -72,7 +72,8 @@ kubectl get clusterrolebinding -o name | grep envoy | xargs -r kubectl delete 2>
 echo "🗑️ Removing namespaces..."
 
 # First, try graceful deletion
-for ns in argocd metallb-system gateway-system development staging production monitoring; do
+# for ns in argocd metallb-system gateway-system development staging production monitoring; do
+for ns in argocd metallb-system gateway-system monitoring; do
     kubectl delete namespace $ns --timeout=30s --ignore-not-found=true 2>/dev/null || {
         echo "Force deleting namespace: $ns"
         kubectl get namespace $ns -o json 2>/dev/null | \

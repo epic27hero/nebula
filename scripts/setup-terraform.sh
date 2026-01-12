@@ -8,7 +8,7 @@ terraform version | grep -q "1." || {
 
 
 MODE=${MODE:-auto}
-CLEAN=${CLEAN:-false}
+CLEAN=${CLEAN:-true}
 
 echo "🏗️ Terraform setup started (mode: $MODE)"
 
@@ -34,6 +34,17 @@ if [ "$CLEAN" = "true" ]; then
     echo "🔍 Verifying cleanup..."
     ./scripts/check-cluster.sh
 fi
+
+# Import existing namespaces if they exist
+echo "🔍 Checking for existing namespaces..."
+cd terraform
+for ns in development staging production; do
+    if kubectl get namespace $ns >/dev/null 2>&1; then
+        echo "📦 Importing existing namespace: $ns"
+        terraform import "kubernetes_namespace_v1.envs[\"$ns\"]" $ns 2>/dev/null || true
+    fi
+done
+cd ..
 
 cd terraform
 

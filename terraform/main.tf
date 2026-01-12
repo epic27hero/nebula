@@ -1,7 +1,12 @@
 resource "kubernetes_namespace_v1" "envs" {
   for_each = toset(["development","staging","production"])
+  
   metadata {
     name = each.value
+  }
+  
+  lifecycle {
+    ignore_changes = [metadata[0].labels, metadata[0].annotations]
   }
 }
 
