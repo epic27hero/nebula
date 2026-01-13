@@ -96,7 +96,7 @@ spec:
   project: default
 
   source:
-    repoURL: http://192.168.0.190/your-group/fastapi-gitops.git
+    repoURL: http://192.168.0.190/root/project_nebula.git
     targetRevision: master
     path: k8s/production
 
