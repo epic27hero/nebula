@@ -89,9 +89,8 @@ deploy:
     echo ""
     echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
     echo "🔄 K3s is pulling new image automatically..."
-    echo ""
-    |-
-      ssh deploy-server bash << 'EOF'
+    
+    ssh deploy-server bash << 'EOF'
         echo "📊 INFRASTRUCTURE STATUS REPORT"
         echo "=================================================="
         echo ""
