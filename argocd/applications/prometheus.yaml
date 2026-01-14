@@ -11,8 +11,11 @@ spec:
     chart: prometheus
     targetRevision: 25.8.0
     helm:
-      valueFiles:
-        - monitoring/prometheus/values.yaml
+      values: |
+        # Add Prometheus values here if needed
+        prometheus:
+          prometheusSpec:
+            retention: 30d
 
   destination:
     server: https://kubernetes.default.svc

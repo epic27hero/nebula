@@ -11,8 +11,11 @@ spec:
     chart: grafana
     targetRevision: 7.3.9
     helm:
-      valueFiles:
-        - monitoring/grafana/values.yaml
+      values: |
+        # Add Grafana values here if needed
+        persistence:
+          enabled: false
+        adminPassword: "grafana"
 
   destination:
     server: https://kubernetes.default.svc
