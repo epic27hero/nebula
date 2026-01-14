@@ -40,6 +40,7 @@ def root():
         "node_name": node_name,
         "node_ip": node_ip,
         "server_ip": node_ip,
+        "version": "v1.0.2"
     }
 
 @app.get("/health")
