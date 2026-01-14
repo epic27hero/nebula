@@ -8,7 +8,7 @@ terraform version | grep -q "1." || {
 
 
 MODE=${MODE:-auto}
-CLEAN=${CLEAN:-true}
+CLEAN=${CLEAN:-false}
 
 echo "🏗️ Terraform setup started (mode: $MODE)"
 
