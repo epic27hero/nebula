@@ -17,3 +17,15 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8000
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: "{{ .value }}"
+          {{- end }}
+          {{- if .valueFrom }}
+          valueFrom:
+            fieldRef:
+              fieldPath: {{ .valueFrom.fieldRef.fieldPath }}
+          {{- end }}
+        {{- end }}

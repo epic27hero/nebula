@@ -7,6 +7,24 @@ image:
 service:
   port: 80
   targetPort: 8000
+
+env:
+  - name: ENV
+    value: "production"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+  - name: NODE_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
   
 podAnnotations:
   prometheus.io/scrape: "true"
