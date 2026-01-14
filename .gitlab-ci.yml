@@ -89,8 +89,7 @@ deploy:
     - echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
     - echo "🔄 K3s is pulling new image automatically..."
     - echo ""
-    - |
-      # Connect to K3s server and verify deployment
+    - |-
       ssh deploy-server bash << 'EOF'
         echo "📊 INFRASTRUCTURE STATUS REPORT"
         echo "=================================================="
