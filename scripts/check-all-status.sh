@@ -68,17 +68,15 @@ echo ""
 # 7. FASTAPI SERVICE ACCESS
 echo -e "${BLUE}7️⃣  FASTAPI APPLICATION ACCESS${NC}"
 echo "---"
-GATEWAY_IP=$(kubectl get gateway prod-gateway -n production -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "pending")
-if [ "$GATEWAY_IP" != "pending" ] && [ -n "$GATEWAY_IP" ]; then
-    echo -e "${GREEN}✅ FastAPI Application:${NC}"
-    echo "   URL: http://$GATEWAY_IP"
-    echo "   Swagger UI: http://$GATEWAY_IP/docs"
-    echo "   Health: http://$GATEWAY_IP/health"
-    echo "   Metrics: http://$GATEWAY_IP/metrics"
+FASTAPI_LB_IP=$(kubectl get svc -n production fastapi-app-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+
+if [ "$FASTAPI_LB_IP" != "pending" ] && [ -n "$FASTAPI_LB_IP" ]; then
+    echo -e "${GREEN}✅ FastAPI via LoadBalancer:${NC} http://$FASTAPI_LB_IP"
+    echo "   Swagger UI: http://$FASTAPI_LB_IP/docs"
+    echo "   Health: http://$FASTAPI_LB_IP/health"
+    echo "   Metrics: http://$FASTAPI_LB_IP/metrics"
 else
-    echo -e "${YELLOW}⏳ Gateway IP pending or not configured${NC}"
-    echo "   FastAPI Service:"
-    kubectl get svc -n production fastapi-app || echo "No LoadBalancer service found"
+    echo -e "${RED}❌ FastAPI LoadBalancer IP not assigned${NC}"
 fi
 echo ""
 
@@ -86,21 +84,21 @@ echo ""
 echo -e "${BLUE}8️⃣  MONITORING STACK${NC}"
 echo "---"
 echo "Prometheus:"
-PROMETHEUS_IP=$(kubectl get svc -n monitoring prometheus-community-kube-prom-prometheus -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
-if [ "$PROMETHEUS_IP" != "pending" ] && [ -n "$PROMETHEUS_IP" ]; then
-    echo -e "${GREEN}✅ http://$PROMETHEUS_IP:9090${NC}"
+PROMETHEUS_LB=$(kubectl get svc -n monitoring prometheus-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+if [ "$PROMETHEUS_LB" != "pending" ] && [ -n "$PROMETHEUS_LB" ]; then
+    echo -e "${GREEN}✅ http://$PROMETHEUS_LB:9090${NC}"
 else
-    echo -e "${YELLOW}⏳ Not deployed or pending IP${NC}"
+    echo -e "${RED}❌ LoadBalancer IP pending${NC}"
 fi
 
 echo ""
 echo "Grafana:"
-GRAFANA_IP=$(kubectl get svc -n monitoring prometheus-community-grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
-if [ "$GRAFANA_IP" != "pending" ] && [ -n "$GRAFANA_IP" ]; then
-    echo -e "${GREEN}✅ http://$GRAFANA_IP:80${NC}"
-    echo "   Default Creds: admin/prom-operator"
+GRAFANA_LB=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+if [ "$GRAFANA_LB" != "pending" ] && [ -n "$GRAFANA_LB" ]; then
+    echo -e "${GREEN}✅ http://$GRAFANA_LB:3000${NC}"
+    echo "   Default Creds: admin/grafana"
 else
-    echo -e "${YELLOW}⏳ Not deployed or pending IP${NC}"
+    echo -e "${RED}❌ LoadBalancer IP pending${NC}"
 fi
 echo ""
 
@@ -154,19 +152,23 @@ echo -e "${GREEN}🌐 ArgoCD Web UI:${NC}"
 echo "   http://$ARGOCD_IP"
 echo ""
 echo -e "${GREEN}📊 Monitoring:${NC}"
-if [ "$PROMETHEUS_IP" != "pending" ]; then
-    echo "   Prometheus: http://$PROMETHEUS_IP:9090"
+if [ "$PROMETHEUS_LB" != "pending" ] && [ -n "$PROMETHEUS_LB" ]; then
+    echo "   Prometheus: http://$PROMETHEUS_LB:9090"
+else
+    echo "   Prometheus: (IP pending)"
 fi
-if [ "$GRAFANA_IP" != "pending" ]; then
-    echo "   Grafana: http://$GRAFANA_IP:80"
+if [ "$GRAFANA_LB" != "pending" ] && [ -n "$GRAFANA_LB" ]; then
+    echo "   Grafana: http://$GRAFANA_LB:3000"
+else
+    echo "   Grafana: (IP pending)"
 fi
 echo ""
 echo -e "${GREEN}🚀 Application:${NC}"
-if [ "$GATEWAY_IP" != "pending" ]; then
-    echo "   FastAPI: http://$GATEWAY_IP"
-    echo "   Swagger: http://$GATEWAY_IP/docs"
+if [ "$FASTAPI_LB_IP" != "pending" ] && [ -n "$FASTAPI_LB_IP" ]; then
+    echo "   FastAPI: http://$FASTAPI_LB_IP"
+    echo "   Swagger: http://$FASTAPI_LB_IP/docs"
 else
-    echo "   Pending Gateway IP assignment..."
+    echo "   FastAPI: (IP pending)"
 fi
 echo ""
 echo -e "${BLUE}═══════════════════════════════════${NC}"

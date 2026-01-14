@@ -254,6 +254,51 @@ else
 fi
 
 ##############################################################################
+# 12. FASTAPI APPLICATION METRICS
+##############################################################################
+print_header "12. FASTAPI APPLICATION METRICS"
+
+FASTAPI_RUNNING=$(kubectl get pods -n production -l app=fastapi --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
+FASTAPI_TOTAL=$(kubectl get deployment -n production fastapi-app -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
+FASTAPI_READY=$(kubectl get deployment -n production fastapi-app -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+FASTAPI_LB=$(kubectl get svc -n production fastapi-app-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+
+print_metric "FastAPI Replicas" "$FASTAPI_READY/$FASTAPI_TOTAL ready" ""
+if [ "$FASTAPI_LB" != "pending" ] && [ -n "$FASTAPI_LB" ]; then
+    print_metric "Load Balancer IP" "$FASTAPI_LB" ""
+    print_metric "Access URL" "http://$FASTAPI_LB" ""
+else
+    print_warning_metric "Load Balancer IP" "pending assignment" ""
+fi
+
+##############################################################################
+# 13. MONITORING STACK ACCESS
+##############################################################################
+print_header "13. MONITORING STACK ACCESS"
+
+PROMETHEUS_LB=$(kubectl get svc -n monitoring prometheus-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+GRAFANA_LB=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+echo "Prometheus:"
+if [ -n "$PROMETHEUS_LB" ]; then
+    print_metric "  LoadBalancer IP" "http://$PROMETHEUS_LB:9090" ""
+else
+    print_warning_metric "  Status" "awaiting LoadBalancer IP" ""
+    print_metric "  Alternative" "kubectl port-forward -n monitoring svc/prometheus-server 9090:80" ""
+fi
+
+echo ""
+echo "Grafana:"
+if [ -n "$GRAFANA_LB" ]; then
+    print_metric "  LoadBalancer IP" "http://$GRAFANA_LB:3000" ""
+    print_metric "  Credentials" "admin / grafana" ""
+else
+    print_warning_metric "  Status" "awaiting LoadBalancer IP" ""
+    print_metric "  Alternative" "kubectl port-forward -n monitoring svc/grafana 3000:80" ""
+    print_metric "  Credentials" "admin / grafana" ""
+fi
+
+##############################################################################
 # FINAL SUMMARY
 ##############################################################################
 print_header "✓ METRICS CHECK COMPLETE"

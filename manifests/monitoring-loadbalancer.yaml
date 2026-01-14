@@ -1,0 +1,41 @@
+---
+# Prometheus LoadBalancer Service
+# Exposes Prometheus via MetalLB on external IP
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-lb
+  namespace: monitoring
+  labels:
+    app: prometheus-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: prometheus
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+
+---
+# Grafana LoadBalancer Service
+# Exposes Grafana via MetalLB on external IP
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-lb
+  namespace: monitoring
+  labels:
+    app: grafana-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: prometheus
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

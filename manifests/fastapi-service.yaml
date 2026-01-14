@@ -1,0 +1,38 @@
+---
+# FastAPI Service for HTTPRoute
+# This service is used by the Gateway API HTTPRoute
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-app
+  namespace: production
+  labels:
+    app: fastapi-app
+spec:
+  type: ClusterIP  # HTTPRoute uses ClusterIP for backend routing
+  selector:
+    app: fastapi  # Matches the deployment pods
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000
+
+---
+# External LoadBalancer Service for Direct Access
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-app-lb
+  namespace: production
+  labels:
+    app: fastapi-app-lb
+spec:
+  type: LoadBalancer  # External access via MetalLB
+  selector:
+    app: fastapi  # Matches the deployment pods
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000

@@ -52,11 +52,21 @@ RELEASES=$(helm list --all-namespaces --short 2>/dev/null | wc -l)
 
 # Prometheus
 PROM=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | grep Running | wc -l)
-[ $PROM -gt 0 ] && echo -e "${GREEN}✓ Prometheus:${NC} Running (10.43.24.90:80)" || echo -e "${RED}✗ Prometheus:${NC} Not running"
+PROM_IP=$(kubectl get svc -n monitoring prometheus-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+if [ -n "$PROM_IP" ]; then
+    echo -e "${GREEN}✓ Prometheus:${NC} http://$PROM_IP:9090"
+else
+    [ $PROM -gt 0 ] && echo -e "${RED}✗ Prometheus:${NC} IP pending" || echo -e "${RED}✗ Prometheus:${NC} Not running"
+fi
 
 # Grafana
 GRAF=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --no-headers 2>/dev/null | grep Running | wc -l)
-[ $GRAF -gt 0 ] && echo -e "${GREEN}✓ Grafana:${NC} Running (10.43.215.176:80)" || echo -e "${RED}✗ Grafana:${NC} Not running"
+GRAF_IP=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+if [ -n "$GRAF_IP" ]; then
+    echo -e "${GREEN}✓ Grafana:${NC} http://$GRAF_IP:3000"
+else
+    [ $GRAF -gt 0 ] && echo -e "${RED}✗ Grafana:${NC} IP pending" || echo -e "${RED}✗ Grafana:${NC} Not running"
+fi
 
 # MetalLB
 MLBPODS=$(kubectl get pods -n metallb-system --no-headers 2>/dev/null | grep Running | wc -l)
@@ -68,9 +78,14 @@ PENDING=$(kubectl get pods --all-namespaces --field-selector=status.phase=Pendin
 FAILED=$(kubectl get pods --all-namespaces --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l)
 echo -e "${GREEN}✓ Pods:${NC} $RUNNING running" && [ $PENDING -gt 0 ] && echo -e "  ${YELLOW}⚠${NC} $PENDING pending" && [ $FAILED -gt 0 ] && echo -e "  ${RED}✗${NC} $FAILED failed"
 
+# FastAPI
+FASTAPI=$(kubectl get deployment -n production fastapi-app --no-headers 2>/dev/null | awk '{print $2}')
+FASTAPI_LB=$(kubectl get svc -n production fastapi-app-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
 echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}AccessPoints:${NC}"
 echo -e "  ArgoCD:     http://$ARGOCD_IP"
-echo -e "  Prometheus: http://10.43.24.90:80"
-echo -e "  Grafana:    http://10.43.215.176:80"
+[ -n "$FASTAPI_LB" ] && echo -e "  FastAPI:    http://$FASTAPI_LB" || echo -e "  FastAPI:    (awaiting LoadBalancer IP)"
+[ -n "$PROM_IP" ] && echo -e "  Prometheus: http://$PROM_IP:9090" || echo -e "  Prometheus: (awaiting LoadBalancer IP)"
+[ -n "$GRAF_IP" ] && echo -e "  Grafana:    http://$GRAF_IP:3000" || echo -e "  Grafana:    (awaiting LoadBalancer IP)"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}\n"
