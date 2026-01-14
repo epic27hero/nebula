@@ -53,43 +53,44 @@ before_script: |
 # ============================================================================
 build:
   stage: build
-  script:
-    - echo "🔨 Building Docker image: ${IMAGE_NAME}"
-    - docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
-    - echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
-    - echo "📦 Tagging for registry..."
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    - echo "✅ Image tagged for push to ${REGISTRY}"
+  script: |
+    echo "🚧 BUILD PHASE"
+    echo "🔨 Building Docker image: ${IMAGE_NAME}"
+    docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
+    echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "📦 Tagging for registry..."
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    echo "✅ Image tagged for push to ${REGISTRY}"
 
 # ============================================================================
 # PUSH STAGE: Upload to Docker registry
 # ============================================================================
 push:
   stage: push
-  script:
-    - echo "📤 Pushing image to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
-    - docker push ${REGISTRY}/${IMAGE_NAME}:latest
-    - docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    - echo "✅ Image pushed successfully"
-    - echo ""
-    - echo "📝 Pushed tags:"
-    - echo "  - ${REGISTRY}/${IMAGE_NAME}:latest"
-    - echo "  - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+  script: |
+    echo "📤 Pushing image to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
+    docker push ${REGISTRY}/${IMAGE_NAME}:latest
+    docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    echo "✅ Image pushed successfully"
+    echo ""
+    echo "📝 Pushed tags:"
+    echo "  - ${REGISTRY}/${IMAGE_NAME}:latest"
+    echo "  - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
 # ============================================================================
 # DEPLOY STAGE: Verify deployment and show status
 # ============================================================================
 deploy:
   stage: deploy
-  script:
-    - echo "🚀 DEPLOYMENT PHASE"
-    - echo "==============================================="
-    - echo ""
-    - echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
-    - echo "🔄 K3s is pulling new image automatically..."
-    - echo ""
-    - |-
+  script: |
+    echo "🚀 DEPLOYMENT PHASE"
+    echo "==============================================="
+    echo ""
+    echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
+    echo "🔄 K3s is pulling new image automatically..."
+    echo ""
+    |-
       ssh deploy-server bash << 'EOF'
         echo "📊 INFRASTRUCTURE STATUS REPORT"
         echo "=================================================="
