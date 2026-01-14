@@ -58,6 +58,22 @@ spec:
         - name: LOG_LEVEL
           value: "info"
         
+        # Kubernetes pod and node information
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
         # Resource limits (adjust based on your needs)
         resources:
           requests:

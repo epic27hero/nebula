@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-import os, socket, subprocess
+import os, socket
 from prometheus_client import Counter, generate_latest
 from fastapi import Response
 
@@ -20,17 +20,26 @@ async def count_requests(request, call_next):
 
 @app.get("/")
 def root():
-    # Get hostname and IP
+    # Get hostname
     hostname = socket.gethostname()
-    try:
-        ip_address = subprocess.check_output(['hostname', '-I']).decode().strip()
-    except:
-        ip_address = socket.gethostbyname(hostname)
+    
+    # Pod and Node details from Kubernetes environment variables
+    pod_ip = os.getenv("POD_IP", "unknown")
+    node_ip = os.getenv("NODE_IP", "unknown")
+    node_name = os.getenv("NODE_NAME", "unknown")
     
     return {
-        "message": f"FastAPI running on Kubernetes on {hostname} ({ip_address})",
+        "message": "FastAPI running on Kubernetes",
         "env": os.getenv("ENV", "unknown"),
-        "host": socket.gethostname()
+        
+        # Pod details
+        "pod_name": hostname,
+        "pod_ip": pod_ip,
+        
+        # Node / Server details
+        "node_name": node_name,
+        "node_ip": node_ip,
+        "server_ip": node_ip,
     }
 
 @app.get("/health")
