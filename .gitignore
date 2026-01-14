@@ -16,3 +16,8 @@ venv/
 # OS
 .DS_Store
 .venv/
+
+# Project analysis and documentation
+PROJECT_STRUCTURE_ANALYSIS.md
+analysis/
+*.analysis.md
