@@ -1,20 +1,41 @@
 stages: [build, push, deploy]
 
+# ============================================================================
+# GITLAB CI/CD PIPELINE FOR PROJECT NEBULA
+# ============================================================================
+# This pipeline:
+# 1. BUILD:  Builds Docker image from Dockerfile
+# 2. PUSH:   Pushes image to Docker registry (192.168.0.113:5000)
+# 3. DEPLOY: Triggers K3s deployment via ArgoCD (automatic via image update)
+#
+# Flow:
+# - Any push to master branch triggers this pipeline
+# - Docker image is built and pushed
+# - K3s cluster detects new image and rolls out new pods
+# - Deployment status is verified and displayed
+# ============================================================================
+
 variables:
   REGISTRY: 192.168.0.113:5000
   IMAGE_NAME: fastapi-demo
-  DEPLOY_SERVER: 192.168.0.113  # Your k3s server
+  DEPLOY_SERVER: 192.168.0.113
   DEPLOY_USER: root
+  # These IPs are from the status check scripts:
+  ARGOCD_IP: 192.168.0.202
+  FASTAPI_LB_IP: 192.168.0.203
+  PROMETHEUS_IP: 192.168.0.204
+  GRAFANA_IP: 192.168.0.205
 
 before_script: |
+  # Setup SSH for deployment server connection
   mkdir -p ~/.ssh
   chmod 700 ~/.ssh
 
-  # Write private key
+  # Write private key from GitLab CI variable
   echo "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" > ~/.ssh/gitlab_testing_ci_project
   chmod 600 ~/.ssh/gitlab_testing_ci_project
 
-  # Add SSH config only if host entry does not exist
+  # Configure SSH to connect to deployment server
   grep -q "Host deploy-server" ~/.ssh/config || cat <<EOF >> ~/.ssh/config
   Host deploy-server
     HostName ${DEPLOY_SERVER}
@@ -27,83 +48,116 @@ before_script: |
 
   chmod 600 ~/.ssh/config
 
+# ============================================================================
+# BUILD STAGE: Create Docker image
+# ============================================================================
 build:
   stage: build
   script:
+    - echo "🔨 Building Docker image: ${IMAGE_NAME}"
     - docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
-    # - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
-    - docker tag fastapi-demo:latest 192.168.0.113:5000/fastapi-demo:latest
+    - echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - echo "📦 Tagging for registry..."
+    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    - echo "✅ Image tagged for push to ${REGISTRY}"
 
+# ============================================================================
+# PUSH STAGE: Upload to Docker registry
+# ============================================================================
 push:
   stage: push
   script:
+    - echo "📤 Pushing image to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
     - docker push ${REGISTRY}/${IMAGE_NAME}:latest
-    # - docker push 192.168.0.113:5000/fastapi-demo:latest
+    - docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    - echo "✅ Image pushed successfully"
+    - echo ""
+    - echo "📝 Pushed tags:"
+    - echo "  - ${REGISTRY}/${IMAGE_NAME}:latest"
+    - echo "  - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
-# deploy:
-#   stage: deploy
-#   script:
-#     # - argocd app sync fastapi-prod --insecure
-#     - echo "Waiting for Gateway to be ready..."
-#     - |
-#       GATEWAY_IP=$(kubectl get gateway prod-gateway -n production \
-#         -o jsonpath='{.status.addresses[0].value}')
-#       echo "======================================="
-#       echo "FastAPI is available at:"
-#       echo "http://${GATEWAY_IP}"
-#       echo "Swagger UI: http://${GATEWAY_IP}/docs"
-#       echo "======================================="
-#   only:
-#     - master
-
-
+# ============================================================================
+# DEPLOY STAGE: Verify deployment and show status
+# ============================================================================
 deploy:
   stage: deploy
   script:
-    - echo "✅ Image pushed to registry"
-    - echo "🔄 Checking deployment status..."
+    - echo "🚀 DEPLOYMENT PHASE"
+    - echo "==============================================="
+    - echo ""
+    - echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
+    - echo "🔄 K3s is pulling new image automatically..."
+    - echo ""
     - |
-      # Run kubectl commands on k3s server via SSH
+      # Connect to K3s server and verify deployment
       ssh deploy-server bash << 'EOF'
-        echo "🔍 Checking Gateway status..."
+        echo "📊 INFRASTRUCTURE STATUS REPORT"
+        echo "=================================================="
+        echo ""
         
-        # Check if Gateway exists
-        if kubectl get gateway prod-gateway -n production &>/dev/null; then
-          GATEWAY_IP=$(kubectl get gateway prod-gateway -n production \
-            -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || echo "pending")
-          
-          echo ""
-          echo "======================================="
-          echo "✅ Deployment Complete"
-          echo "======================================="
-          
-          if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "pending" ]; then
-            echo "🌐 FastAPI Application:"
-            echo "   URL: http://${GATEWAY_IP}"
-            echo "   Swagger UI: http://${GATEWAY_IP}/docs"
-            echo "   Health: http://${GATEWAY_IP}/health"
-          else
-            echo "⏳ Gateway IP is pending assignment..."
-            echo "   Check: kubectl get gateway prod-gateway -n production"
-          fi
-          
-          echo ""
-          echo "📊 Application Pods:"
-          kubectl get pods -n production -l app=fastapi-app 2>/dev/null || \
-            echo "   No pods found (ArgoCD may be syncing...)"
-          
-          echo "======================================="
-        else
-          echo "ℹ️  Gateway 'prod-gateway' not found"
-          echo "✅ Application deployed - Gateway will be created by Terraform"
-        fi
+        # Kubernetes Cluster Status
+        echo "1️⃣  KUBERNETES CLUSTER"
+        echo "   Nodes:"
+        kubectl get nodes --no-headers | while read line; do
+          echo "   - $line"
+        done
+        echo ""
+        
+        # FastAPI Deployment Status
+        echo "2️⃣  FASTAPI APPLICATION"
+        echo "   Deployment: $(kubectl get deployment -n production fastapi-app -o jsonpath='{.status.replicas}/{.spec.replicas}' 2>/dev/null) replicas ready"
+        echo "   Pods:"
+        kubectl get pods -n production -l app=fastapi --no-headers | while read line; do
+          POD_NAME=$(echo $line | awk '{print $1}')
+          STATUS=$(echo $line | awk '{print $3}')
+          IP=$(echo $line | awk '{print $6}')
+          echo "   - $POD_NAME ($IP) - $STATUS"
+        done
+        echo ""
+        
+        # Services and Access Points
+        echo "3️⃣  ACCESS POINTS"
+        echo "   🌐 ArgoCD:      http://192.168.0.202"
+        echo "   🚀 FastAPI:     http://192.168.0.203"
+        echo "      - Swagger UI: http://192.168.0.203/docs"
+        echo "      - Health:     http://192.168.0.203/health"
+        echo "      - Metrics:    http://192.168.0.203/metrics"
+        echo ""
+        echo "   📊 Prometheus:  http://192.168.0.204:9090"
+        echo "   📈 Grafana:     http://192.168.0.205:3000"
+        echo "      - Username: admin"
+        echo "      - Password: grafana"
+        echo ""
+        
+        # ArgoCD Applications
+        echo "4️⃣  ARGOCD APPLICATIONS"
+        kubectl get applications -n argocd --no-headers | while read line; do
+          APP=$(echo $line | awk '{print $1}')
+          SYNC=$(echo $line | awk '{print $2}')
+          HEALTH=$(echo $line | awk '{print $3}')
+          echo "   - $APP: Sync=$SYNC, Health=$HEALTH"
+        done
+        echo ""
+        
+        # MetalLB IP Pool
+        echo "5️⃣  METALLB LOAD BALANCER"
+        echo "   IP Pool: 192.168.0.201 - 192.168.0.250"
+        echo "   Status: $(kubectl get pods -n metallb-system --field-selector=status.phase=Running --no-headers | wc -l) pods running"
+        echo ""
+        
+        # Recent Deployment Events
+        echo "6️⃣  RECENT EVENTS"
+        kubectl get events -n production --sort-by='.lastTimestamp' | tail -5 | while read line; do
+          echo "   $line"
+        done
+        echo ""
+        
+        echo "=================================================="
+        echo "✅ DEPLOYMENT STATUS CHECK COMPLETE"
+        echo "=================================================="
       EOF
   only:
     - master
-
-  # when: manual  
-  # environment:
-  #   name: production  
-  # dependencies:
-  #   - push
-  # before_script:
+  # Uncomment below to make deployment manual:
+  # when: manual
