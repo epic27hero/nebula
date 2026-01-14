@@ -4,7 +4,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fastapi-demo
+  name: fastapi-app
   namespace: production
   labels:
     app: fastapi-demo
@@ -23,13 +23,13 @@ spec:
   # Selector to match pods
   selector:
     matchLabels:
-      app: fastapi-demo
+      app: fastapi
   
   # Pod template
   template:
     metadata:
       labels:
-        app: fastapi-demo
+        app: fastapi
         version: v1
       annotations:
         # Force pod recreation on every deployment
