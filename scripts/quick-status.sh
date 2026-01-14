@@ -62,8 +62,9 @@ fi
 # Grafana
 GRAF=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --no-headers 2>/dev/null | grep Running | wc -l)
 GRAF_IP=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+GRAF_PASS=$(cat /root/project_nebula/grafana-password.txt 2>/dev/null || echo "grafana")
 if [ -n "$GRAF_IP" ]; then
-    echo -e "${GREEN}✓ Grafana:${NC} http://$GRAF_IP:3000"
+    echo -e "${GREEN}✓ Grafana:${NC} http://$GRAF_IP:3000 (admin/$GRAF_PASS)"
 else
     [ $GRAF -gt 0 ] && echo -e "${RED}✗ Grafana:${NC} IP pending" || echo -e "${RED}✗ Grafana:${NC} Not running"
 fi

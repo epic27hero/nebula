@@ -289,13 +289,17 @@ fi
 
 echo ""
 echo "Grafana:"
+GRAFANA_LB=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+GRAFANA_PASS=$(cat /root/project_nebula/grafana-password.txt 2>/dev/null || echo "grafana")
 if [ -n "$GRAFANA_LB" ]; then
     print_metric "  LoadBalancer IP" "http://$GRAFANA_LB:3000" ""
-    print_metric "  Credentials" "admin / grafana" ""
+    print_metric "  Username" "admin" ""
+    print_metric "  Password" "$GRAFANA_PASS" ""
 else
     print_warning_metric "  Status" "awaiting LoadBalancer IP" ""
     print_metric "  Alternative" "kubectl port-forward -n monitoring svc/grafana 3000:80" ""
-    print_metric "  Credentials" "admin / grafana" ""
+    print_metric "  Username" "admin" ""
+    print_metric "  Password" "$GRAFANA_PASS" ""
 fi
 
 ##############################################################################

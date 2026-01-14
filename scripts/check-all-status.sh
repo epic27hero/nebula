@@ -94,9 +94,11 @@ fi
 echo ""
 echo "Grafana:"
 GRAFANA_LB=$(kubectl get svc -n monitoring grafana-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+GRAFANA_PASS=$(cat grafana-password.txt 2>/dev/null || echo "grafana")
 if [ "$GRAFANA_LB" != "pending" ] && [ -n "$GRAFANA_LB" ]; then
     echo -e "${GREEN}✅ http://$GRAFANA_LB:3000${NC}"
-    echo "   Default Creds: admin/grafana"
+    echo "   Username: admin"
+    echo "   Password: $GRAFANA_PASS"
 else
     echo -e "${RED}❌ LoadBalancer IP pending${NC}"
 fi
