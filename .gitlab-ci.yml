@@ -155,7 +155,7 @@ deploy:
         echo "=================================================="
         echo "✅ DEPLOYMENT STATUS CHECK COMPLETE"
         echo "=================================================="
-      EOF
+    EOF
   only:
     - master
   # Uncomment below to make deployment manual:
