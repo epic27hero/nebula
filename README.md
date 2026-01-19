@@ -158,14 +158,7 @@ project_nebula/
 │   ├── run-status-check.sh              # Interactive menu
 │   └── README.md
 │
-├── docs/                                # Comprehensive documentation
-│   ├── ARCHITECTURE_GUIDE.md
-│   ├── SETUP_GUIDE.md
-│   ├── DEPLOYMENT_GUIDE.md
-│   ├── COMMANDS_REFERENCE.md
-│   ├── INFRASTRUCTURE_ACCESS.md
-│   ├── ARCHITECTURE_DIAGRAM_DETAILED.md
-│   └── PROJECT_NEBULA_ARCHITECTURE_DOCUMENT.html
+│
 │
 ├── argocd-password.txt                  # ArgoCD admin password
 ├── grafana-password.txt                 # Grafana admin password
@@ -602,18 +595,6 @@ kubectl logs -n monitoring grafana-0
 
 ---
 
-## 📖 Documentation
-
-For detailed information, see:
-
-* [ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) - Deep dive into all components
-* [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) - Step-by-step installation
-* [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - How to deploy updates
-* [COMMANDS_REFERENCE.md](docs/COMMANDS_REFERENCE.md) - Common kubectl commands
-* [INFRASTRUCTURE_ACCESS.md](docs/INFRASTRUCTURE_ACCESS.md) - Service access points
-* [ARCHITECTURE_DIAGRAM_DETAILED.md](docs/ARCHITECTURE_DIAGRAM_DETAILED.md) - Complete diagram with IPs
-
----
 
 ## 🔐 Security Considerations
 
