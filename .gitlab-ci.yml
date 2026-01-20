@@ -199,6 +199,9 @@ deploy:
     # -----> NEW: Commit and push updated manifest to Git
     echo ""
     echo "📤 Committing manifest update to Git..."
+
+    git config user.email "gitlab@factentry.com"
+    git config user.name "root"
     git add manifests/deployment.yaml
     git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA}
 
@@ -211,8 +214,9 @@ deploy:
     # Note: Using HEAD:branch syntax because runner is in detached HEAD state
     # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
     # Using HTTP (not HTTPS) because GitLab runs on port 80 locally
-    git push "http://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
-    
+    # git push "http://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
+    git push "http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
+
     echo "✅ Manifest committed and pushed to Git"
     echo ""
     
