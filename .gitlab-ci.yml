@@ -208,7 +208,8 @@ deploy:
     Pipeline: ${CI_PIPELINE_URL}"
     
     # Push back to repository
-    git push origin ${CI_COMMIT_BRANCH}
+    # Note: Using HEAD:branch syntax because runner is in detached HEAD state
+    git push origin HEAD:${CI_COMMIT_BRANCH}
     
     echo "✅ Manifest committed and pushed to Git"
     echo ""
