@@ -210,7 +210,8 @@ deploy:
     # Push back to repository
     # Note: Using HEAD:branch syntax because runner is in detached HEAD state
     # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
-    git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
+    # Using HTTP (not HTTPS) because GitLab runs on port 80 locally
+    git push "http://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
     
     echo "✅ Manifest committed and pushed to Git"
     echo ""
