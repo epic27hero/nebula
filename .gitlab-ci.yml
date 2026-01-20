@@ -203,7 +203,7 @@ deploy:
     git config user.email "gitlab@factentry.com"
     git config user.name "root"
     git add manifests/deployment.yaml
-    git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA}
+    git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
 
     Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     Commit: ${CI_COMMIT_SHA}
@@ -372,7 +372,9 @@ release:
     # -----> NEW: Push tag to repository
     # This makes the tag visible in GitLab's Release section
     # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
-    git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" ${RELEASE_VERSION}
+    # git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" ${RELEASE_VERSION}
+    git push "http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@192.168.0.190/root/project_nebula.git" ${RELEASE_VERSION}
+
     
     echo "✅ Release tag created and pushed: ${RELEASE_VERSION}"
     echo ""
