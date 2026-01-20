@@ -226,7 +226,7 @@ deploy:
     echo "   • GitLab Registry: http://192.168.0.190/root/project_nebula/container_registry"
     
   only:
-    - master
+    - master,feature/gitlab-gitops-enhancements
   retry:
     max: 2
     when:
@@ -374,7 +374,7 @@ release:
   # -----> NEW: Only run on master branch after successful deploy
   # This ensures only stable deployments get tagged
   only:
-    - master
+    - master,feature/gitlab-gitops-enhancements
   when: on_success
   
   # -----> NEW: Retry configuration
