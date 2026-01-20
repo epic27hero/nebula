@@ -37,12 +37,12 @@ spec:
     spec:
       containers:
       - name: fastapi
-        # image: localhost:5000/fastapi-demo:latest
+        # image: 192.168.0.190:5005/root/project_nebula/fastapi-demo:274b7cd1
         # image : 192.168.0.113:5000/fastapi-demo:latest
-        # image: 192.168.0.190:5000/root/testing_ci_project/fastapi-demo:latest
-        # image: 192.168.0.190:5005/root/testing_ci_project/fastapi-demo:${CI_COMMIT_SHORT_SHA}
-        # image: 192.168.0.190:5000/fastapi-demo:${CI_COMMIT_SHORT_SHA}
-        image: 192.168.0.113:5000/fastapi-demo:latest
+        # image: 192.168.0.190:5005/root/project_nebula/fastapi-demo:274b7cd1
+        # image: 192.168.0.190:5005/root/project_nebula/fastapi-demo:274b7cd1
+        # image: 192.168.0.190:5005/root/project_nebula/fastapi-demo:274b7cd1
+        image: 192.168.0.190:5005/root/project_nebula/fastapi-demo:274b7cd1
         imagePullPolicy: Always
         
         # Container port
