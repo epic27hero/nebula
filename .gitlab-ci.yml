@@ -1,23 +1,38 @@
-stages: [build, push, deploy]
+stages: [build, push, deploy, release]
 
 # ============================================================================
-# GITLAB CI/CD PIPELINE FOR PROJECT NEBULA
+# GITLAB CI/CD PIPELINE FOR PROJECT NEBULA - ENHANCED GITOPS VERSION
 # ============================================================================
-# This pipeline:
-# 1. BUILD:  Builds Docker image from Dockerfile
-# 2. PUSH:   Pushes image to Docker registry (192.168.0.113:5000)
-# 3. DEPLOY: Triggers K3s deployment via ArgoCD (automatic via image update)
+# This pipeline implements pure GitOps with:
+# 1. BUILD:   Builds Docker image from Dockerfile
+# 2. PUSH:    Pushes image to GitLab Container Registry (registry.gitlab.com)
+# 3. DEPLOY:  Updates manifests in Git (ArgoCD syncs automatically)
+# 4. RELEASE: Creates versioned releases for tracking
 #
 # Flow:
 # - Any push to master branch triggers this pipeline
-# - Docker image is built and pushed
-# - K3s cluster detects new image and rolls out new pods
-# - Deployment status is verified and displayed
+# - Docker image is built and pushed to GitLab Registry
+# - Manifests updated with new image tag + committed to Git
+# - ArgoCD detects Git changes and deploys automatically (NO manual kubectl!)
+# - Releases track deployment versions
+#
+# Benefits:
+# ✅ Single source of truth = Git manifests
+# ✅ ArgoCD handles all deployments (no conflicts)
+# ✅ Full audit trail in Git history
+# ✅ Easy rollbacks via Git
 # ============================================================================
 
+# -----> VARIABLES - ENHANCED FOR GITLAB REGISTRY
 variables:
-  REGISTRY: 192.168.0.113:5000
-  IMAGE_NAME: fastapi-demo
+  # OLD: REGISTRY: 192.168.0.113:5000
+  # NEW: Using GitLab Container Registry
+  GITLAB_REGISTRY: "registry.192.168.0.190"
+  IMAGE_NAME: "root/project_nebula/fastapi-demo"
+  
+  # -----> LEGACY: Keeping old registry for backward compatibility (comment out when fully migrated)
+  # REGISTRY: 192.168.0.113:5000
+  
   DEPLOY_SERVER: 192.168.0.113
   DEPLOY_USER: root
   # These IPs are from the status check scripts:
@@ -25,27 +40,65 @@ variables:
   FASTAPI_LB_IP: 192.168.0.203
   PROMETHEUS_IP: 192.168.0.204
   GRAFANA_IP: 192.168.0.205
+  
+  # -----> NEW: GitLab Container Registry credentials
+  REGISTRY_USER: $CI_REGISTRY_USER
+  REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
+  
+  # -----> NEW: Git commit info for manifest updates
+  GIT_STRATEGY: clone
+  GIT_DEPTH: 0
 
+# -----> OLD BEFORE_SCRIPT (LEGACY - Comment out when fully migrated to GitOps)
+# This SSH setup was used for direct kubectl deployments
+# NO LONGER NEEDED because ArgoCD handles deployments now
+#
+# before_script: |
+#   # Setup SSH for deployment server connection
+#   mkdir -p ~/.ssh
+#   chmod 700 ~/.ssh
+#
+#   # Write private key from GitLab CI variable
+#   echo "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" > ~/.ssh/gitlab_testing_ci_project
+#   chmod 600 ~/.ssh/gitlab_testing_ci_project
+#
+#   # Configure SSH to connect to deployment server
+#   grep -q "Host deploy-server" ~/.ssh/config || cat <<EOF >> ~/.ssh/config
+#   Host deploy-server
+#     HostName ${DEPLOY_SERVER}
+#     User ${DEPLOY_USER}
+#     IdentityFile ~/.ssh/gitlab_testing_ci_project
+#     IdentitiesOnly yes
+#     StrictHostKeyChecking no
+#     UserKnownHostsFile /dev/null
+#   EOF
+#
+#   chmod 600 ~/.ssh/config
+# -----> END OF LEGACY SSH SETUP
+
+# -----> NEW BEFORE_SCRIPT (GitOps Version)
+# Setup Git credentials for committing manifest updates
 before_script: |
-  # Setup SSH for deployment server connection
+  # Configure Git for automated commits
+  git config --global user.email "gitlab-ci@project-nebula.local"
+  git config --global user.name "GitLab CI/CD"
+  
+  # Setup SSH key for Git operations (if using SSH)
   mkdir -p ~/.ssh
   chmod 700 ~/.ssh
-
-  # Write private key from GitLab CI variable
   echo "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" > ~/.ssh/gitlab_testing_ci_project
   chmod 600 ~/.ssh/gitlab_testing_ci_project
-
-  # Configure SSH to connect to deployment server
-  grep -q "Host deploy-server" ~/.ssh/config || cat <<EOF >> ~/.ssh/config
-  Host deploy-server
-    HostName ${DEPLOY_SERVER}
-    User ${DEPLOY_USER}
+  
+  # Configure SSH for git push
+  grep -q "Host gitlab" ~/.ssh/config || cat <<EOF >> ~/.ssh/config
+  Host gitlab
+    HostName 192.168.0.190
+    User git
     IdentityFile ~/.ssh/gitlab_testing_ci_project
     IdentitiesOnly yes
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
   EOF
-
   chmod 600 ~/.ssh/config
 
 # ============================================================================
@@ -53,116 +106,360 @@ before_script: |
 # ============================================================================
 build:
   stage: build
+  # -----> NEW: Add environment tracking
+  environment:
+    name: build
+    action: prepare
+  
   script: |
     echo "🚧 BUILD PHASE"
     echo "🔨 Building Docker image: ${IMAGE_NAME}"
     docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
     echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
-    echo "📦 Tagging for registry..."
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    echo "✅ Image tagged for push to ${REGISTRY}"
+    
+    # -----> NEW: Tag for GitLab Container Registry
+    echo "📦 Tagging for GitLab Container Registry..."
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    
+    # -----> LEGACY: Also tag for old registry (can remove later)
+    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    
+    echo "✅ Image tagged for GitLab Container Registry"
+    echo "   - ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
+    echo "   - ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
 # ============================================================================
-# PUSH STAGE: Upload to Docker registry
+# PUSH STAGE: Upload to GitLab Container Registry
 # ============================================================================
 push:
   stage: push
+  # -----> NEW: Add environment tracking
+  environment:
+    name: staging
+    action: prepare
+  
   script: |
-    echo "📤 Pushing image to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
-    docker push ${REGISTRY}/${IMAGE_NAME}:latest
-    docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    echo "✅ Image pushed successfully"
+    echo "📤 PUSH PHASE - Uploading to GitLab Container Registry"
+    
+    # -----> NEW: Login to GitLab Container Registry
+    echo "🔑 Logging in to GitLab Container Registry..."
+    echo "${REGISTRY_PASSWORD}" | docker login -u ${REGISTRY_USER} --password-stdin ${GITLAB_REGISTRY}
+    
+    # -----> NEW: Push to GitLab Container Registry
+    echo "📤 Pushing image to GitLab registry: ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
+    docker push ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest
+    docker push ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    echo "✅ Image pushed to GitLab Container Registry successfully"
+    
+    # -----> LEGACY: Also push to old registry (can remove later)
+    # echo "📤 Pushing image to legacy registry: ${REGISTRY}/${IMAGE_NAME}:latest"
+    # docker push ${REGISTRY}/${IMAGE_NAME}:latest
+    # docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    
     echo ""
     echo "📝 Pushed tags:"
-    echo "  - ${REGISTRY}/${IMAGE_NAME}:latest"
-    echo "  - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "  - ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
+    echo "  - ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo ""
+    echo "✅ Image now available in GitLab Container Registry"
+    echo "   Access at: http://192.168.0.190/root/project_nebula/container_registry"
 
 # ============================================================================
-# DEPLOY STAGE: Verify deployment and show status
+# DEPLOY STAGE: Update manifests in Git (ArgoCD handles deployment)
 # ============================================================================
 deploy:
   stage: deploy
+  # -----> NEW: Add environment tracking for production
+  environment:
+    name: production
+    url: http://192.168.0.203
+    action: prepare
+    kubernetes:
+      namespace: production
+  
   script: |
-    echo "🚀 DEPLOYMENT PHASE"
+    echo "🚀 DEPLOYMENT PHASE (GitOps - Pure ArgoCD)"
     echo "==============================================="
     echo ""
-    echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
-    echo "🔄 K3s is pulling new image automatically..."
+    echo "✅ Image pushed to GitLab Container Registry"
+    echo "   Registry: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo ""
     
-    ssh deploy-server bash << 'EOF'
-        echo "� TRIGGERING POD RESTART FOR NEW IMAGE..."
-        kubectl rollout restart deployment/fastapi-app -n production
-        echo "⏳ Waiting for deployment to complete..."
-        kubectl rollout status deployment/fastapi-app -n production
-        echo "✅ Pod restart complete!"
-        echo ""
-        echo "�📊 INFRASTRUCTURE STATUS REPORT"
-        echo "=================================================="
-        echo ""
-        
-        # Kubernetes Cluster Status
-        echo "1️⃣  KUBERNETES CLUSTER"
-        echo "   Nodes:"
-        kubectl get nodes --no-headers | while read line; do
-          echo "   - $line"
-        done
-        echo ""
-        
-        # FastAPI Deployment Status
-        echo "2️⃣  FASTAPI APPLICATION"
-        echo "   Deployment: $(kubectl get deployment -n production fastapi-app -o jsonpath='{.status.replicas}/{.spec.replicas}' 2>/dev/null) replicas ready"
-        echo "   Pods:"
-        kubectl get pods -n production -l app=fastapi --no-headers | while read line; do
-          POD_NAME=$(echo $line | awk '{print $1}')
-          STATUS=$(echo $line | awk '{print $3}')
-          IP=$(echo $line | awk '{print $6}')
-          echo "   - $POD_NAME ($IP) - $STATUS"
-        done
-        echo ""
-        
-        # Services and Access Points
-        echo "3️⃣  ACCESS POINTS"
-        echo "   🌐 ArgoCD:      http://192.168.0.202"
-        echo "   🚀 FastAPI:     http://192.168.0.203"
-        echo "      - Swagger UI: http://192.168.0.203/docs"
-        echo "      - Health:     http://192.168.0.203/health"
-        echo "      - Metrics:    http://192.168.0.203/metrics"
-        echo ""
-        echo "   📊 Prometheus:  http://192.168.0.204:9090"
-        echo "   📈 Grafana:     http://192.168.0.205:3000"
-        echo "      - Username: admin"
-        echo "      - Password: grafana"
-        echo ""
-        
-        # ArgoCD Applications
-        echo "4️⃣  ARGOCD APPLICATIONS"
-        kubectl get applications -n argocd --no-headers | while read line; do
-          APP=$(echo $line | awk '{print $1}')
-          SYNC=$(echo $line | awk '{print $2}')
-          HEALTH=$(echo $line | awk '{print $3}')
-          echo "   - $APP: Sync=$SYNC, Health=$HEALTH"
-        done
-        echo ""
-        
-        # MetalLB IP Pool
-        echo "5️⃣  METALLB LOAD BALANCER"
-        echo "   IP Pool: 192.168.0.201 - 192.168.0.250"
-        echo "   Status: $(kubectl get pods -n metallb-system --field-selector=status.phase=Running --no-headers | wc -l) pods running"
-        echo ""
-        
-        # Recent Deployment Events
-        echo "6️⃣  RECENT EVENTS"
-        kubectl get events -n production --sort-by='.lastTimestamp' | tail -5 | while read line; do
-          echo "   $line"
-        done
-        echo ""
-        
-        echo "=================================================="
-        echo "✅ DEPLOYMENT STATUS CHECK COMPLETE"
-        echo "=================================================="
-    EOF
+    # -----> NEW: Update Kubernetes manifests with new image
+    echo "📝 Updating Kubernetes manifests with new image tag..."
+    
+    # Update deployment.yaml with new image
+    sed -i "s|image:.*fastapi-demo.*|image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}|g" manifests/deployment.yaml
+    
+    echo "✅ Updated manifests/deployment.yaml"
+    
+    # -----> NEW: Commit and push updated manifest to Git
+    echo ""
+    echo "📤 Committing manifest update to Git..."
+    git add manifests/deployment.yaml
+    git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA}
+
+    Image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    Commit: ${CI_COMMIT_SHA}
+    Branch: ${CI_COMMIT_BRANCH}
+    Pipeline: ${CI_PIPELINE_URL}"
+    
+    # Push back to repository
+    git push origin ${CI_COMMIT_BRANCH}
+    
+    echo "✅ Manifest committed and pushed to Git"
+    echo ""
+    
+    # -----> NEW: Explain GitOps flow
+    echo "🔄 GitOps Flow:"
+    echo "   1. ✅ Image built and pushed to GitLab Registry"
+    echo "   2. ✅ Manifest updated with new image tag"
+    echo "   3. ✅ Changes committed to Git"
+    echo "   4. ⏳ ArgoCD will auto-sync within 3 minutes"
+    echo "   5. ⏳ K3s cluster will receive new image"
+    echo ""
+    echo "📊 Monitor at:"
+    echo "   • ArgoCD UI: http://192.168.0.202"
+    echo "   • FastAPI: http://192.168.0.203"
+    echo "   • GitLab Registry: http://192.168.0.190/root/project_nebula/container_registry"
+    
   only:
     - master
-  # Uncomment below to make deployment manual:
-  # when: manual
+  retry:
+    max: 2
+    when:
+      - script_failure
+
+# -----> OLD DEPLOY STAGE (LEGACY - Using SSH kubectl - NO LONGER USED)
+# This approach caused conflicts between GitLab and ArgoCD
+# Keeping as reference, COMMENTED OUT
+#
+# deploy_legacy:
+#   stage: deploy
+#   script: |
+#     echo "🚀 DEPLOYMENT PHASE (LEGACY - SSH kubectl)"
+#     echo "==============================================="
+#     echo ""
+#     echo "✅ Image pushed to registry: ${REGISTRY}/${IMAGE_NAME}:latest"
+#     echo "🔄 K3s is pulling new image automatically..."
+#     
+#     ssh deploy-server bash << 'EOF'
+#         echo "TRIGGERING POD RESTART FOR NEW IMAGE..."
+#         kubectl rollout restart deployment/fastapi-app -n production
+#         echo "⏳ Waiting for deployment to complete..."
+#         kubectl rollout status deployment/fastapi-app -n production
+#         echo "✅ Pod restart complete!"
+#         
+#         # Status checks...
+#         # (old deploy logic)
+#     EOF
+#   only:
+#     - master
+#   when: manual  # COMMENTED OUT by default
+#
+# -----> END OF LEGACY DEPLOY
+
+# ============================================================================
+# ✅ #4 - RELEASE STAGE: Create versioned releases with Git tags
+# ============================================================================
+# WHY: Track deployment versions for audit trail and easy rollbacks
+#
+# This stage:
+# 1. Creates annotated Git tags for each deployment
+# 2. Tags appear in GitLab Releases section (Deploy → Releases)
+# 3. Release notes include deployment info, image, commit, etc.
+# 4. Easy to identify which version is deployed where
+# 5. Can rollback by checking out an old release tag
+#
+# BENEFIT: Full version history visible in GitLab UI
+# ============================================================================
+release:
+  stage: release
+  # -----> NEW: Release stage for version tracking
+  script: |
+    echo "🏷️  RELEASE PHASE - Creating versioned release"
+    echo "=================================================="
+    echo ""
+    
+    # Create release version from pipeline ID and commit SHA
+    # Format: v{PIPELINE_ID}-{COMMIT_SHA}
+    # Example: v12345-a1b2c3d4
+    RELEASE_VERSION="v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
+    RELEASE_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    echo "📝 Creating release: ${RELEASE_VERSION}"
+    echo ""
+    
+    # -----> NEW: Create annotated Git tag (not lightweight)
+    # Annotated tags are preferred for releases
+    # They include: author, date, message, and can be signed
+    git tag -a ${RELEASE_VERSION} -m "🚀 Release: ${RELEASE_VERSION}
+    
+    ═══════════════════════════════════════════════════════════
+    DEPLOYMENT INFORMATION
+    ═══════════════════════════════════════════════════════════
+    
+    Pipeline URL: ${CI_PIPELINE_URL}
+    Commit SHA: ${CI_COMMIT_SHA}
+    Branch: ${CI_COMMIT_BRANCH}
+    Author: ${GITLAB_USER_LOGIN}
+    Date: ${RELEASE_DATE}
+    
+    ═══════════════════════════════════════════════════════════
+    IMAGE DETAILS
+    ═══════════════════════════════════════════════════════════
+    
+    Docker Image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    
+    Container Registry Link:
+    http://192.168.0.190/root/project_nebula/container_registry
+    
+    ═══════════════════════════════════════════════════════════
+    DEPLOYMENT ENDPOINTS
+    ═══════════════════════════════════════════════════════════
+    
+    ArgoCD Dashboard:
+    http://192.168.0.202
+    
+    FastAPI Application:
+    http://192.168.0.203
+    - Swagger Docs: http://192.168.0.203/docs
+    - Health Check: http://192.168.0.203/health
+    - Metrics: http://192.168.0.203/metrics
+    
+    Prometheus Metrics:
+    http://192.168.0.204:9090
+    
+    Grafana Dashboards:
+    http://192.168.0.205:3000 (admin/grafana)
+    
+    ═══════════════════════════════════════════════════════════
+    KUBERNETES INFO
+    ═══════════════════════════════════════════════════════════
+    
+    Namespace: production
+    Deployment: fastapi-app
+    Replicas: 3
+    
+    Check deployment status:
+    kubectl get deployment fastapi-app -n production
+    kubectl get pods -n production
+    
+    ═══════════════════════════════════════════════════════════
+    HOW TO ROLLBACK
+    ═══════════════════════════════════════════════════════════
+    
+    To rollback to this version:
+    1. Open ArgoCD: http://192.168.0.202
+    2. Go to fastapi-production app
+    3. Click 'Sync' and select this commit SHA
+    4. Or manually edit manifests/deployment.yaml with this image tag
+    
+    ═══════════════════════════════════════════════════════════
+    "
+    
+    # -----> NEW: Push tag to repository
+    # This makes the tag visible in GitLab's Release section
+    git push origin ${RELEASE_VERSION}
+    
+    echo "✅ Release tag created and pushed: ${RELEASE_VERSION}"
+    echo ""
+    echo "📊 Release Available At:"
+    echo "   GitLab UI: http://192.168.0.190/root/project_nebula/-/releases/${RELEASE_VERSION}"
+    echo ""
+    echo "✅ Check 'Deploy → Releases' section in GitLab to view all releases"
+  
+  # -----> NEW: Only run on master branch after successful deploy
+  # This ensures only stable deployments get tagged
+  only:
+    - master
+  when: on_success
+  
+  # -----> NEW: Retry configuration
+  # If tagging fails, retry once
+  retry:
+    max: 1
+    when:
+      - script_failure
+
+# ============================================================================
+# ✅ #3 - KUBERNETES CLUSTER INTEGRATION (GitLab + K3s Connection)
+# ============================================================================
+# WHY: Enable GitLab to see pod status, logs, and deployment history
+#
+# This configuration allows:
+# 1. View pods directly in GitLab Environments section
+# 2. See pod logs without SSH/kubectl
+# 3. Track deployment history in GitLab UI
+# 4. Direct pod troubleshooting from GitLab
+# 5. Team visibility without kubectl knowledge
+#
+# BENEFIT: Full cluster visibility in GitLab UI for entire team
+#
+# ============================================================================
+# HOW TO ENABLE K8s CLUSTER INTEGRATION:
+#
+# Step 1: Generate Service Account Token in K3s
+# ────────────────────────────────────────────────
+# kubectl create serviceaccount gitlab-admin -n kube-system
+# kubectl create clusterrolebinding gitlab-admin --clusterrole=cluster-admin --serviceaccount=kube-system:gitlab-admin
+#
+# # Get token
+# kubectl get secret $(kubectl get secret -n kube-system | grep gitlab-admin | awk '{print $1}') \
+#   -n kube-system -o jsonpath="{['data']['token']}" | base64 --decode
+#
+# # Get cluster CA certificate
+# kubectl get secret $(kubectl get secret -n kube-system | grep gitlab-admin | awk '{print $1}') \
+#   -n kube-system -o jsonpath="{['data']['ca\.crt']}" | base64 --decode
+#
+#
+# Step 2: Get K8s API URL
+# ────────────────────────────────────────────────
+# kubectl cluster-info | grep 'Kubernetes master'
+# Should be: https://192.168.0.113:6443
+#
+#
+# Step 3: Add Cluster to GitLab
+# ────────────────────────────────────────────────
+# 1. Go to GitLab: Project → Infrastructure → Kubernetes clusters
+# 2. Click "Connect a cluster"
+# 3. Enter:
+#    - Kubernetes cluster name: project-nebula-k3s
+#    - API URL: https://192.168.0.113:6443
+#    - CA Certificate: (paste from Step 1)
+#    - Token: (paste from Step 1)
+#    - Project namespace: production
+#
+#
+# Step 4: Verify Connection
+# ────────────────────────────────────────────────
+# Once connected:
+# - Go to Deploy → Environments
+# - Should see "production" environment
+# - Click it to see pod status, logs, metrics
+# - Deployment history will appear automatically
+#
+#
+# Expected Result in GitLab UI:
+# ────────────────────────────────────────────────
+# Deploy → Environments
+# ├── production (environment)
+#     ├── Pod: fastapi-app-xxxxx (status: Running)
+#     ├── Pod: fastapi-app-yyyyy (status: Running)
+#     ├── Pod: fastapi-app-zzzzz (status: Running)
+#     └── [View Logs] [View Metrics]
+#
+#
+# What You Can Do After Integration:
+# ────────────────────────────────────────────────
+# ✅ See pod status in real-time
+# ✅ View pod logs (kubectl logs equivalent)
+# ✅ Check pod resource usage
+# ✅ Track deployment history
+# ✅ See when each deployment occurred
+# ✅ One-click view of running version
+# ✅ Team members see deployment status without SSH
+#
+# ============================================================================
