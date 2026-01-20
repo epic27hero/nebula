@@ -26,9 +26,10 @@ stages: [build, push, deploy, release]
 # -----> VARIABLES - ENHANCED FOR GITLAB REGISTRY
 variables:
   # OLD: REGISTRY: 192.168.0.113:5000
-  # NEW: Using GitLab Container Registry
-  GITLAB_REGISTRY: "registry.192.168.0.190"
-  IMAGE_NAME: "root/project_nebula/fastapi-demo"
+  # NEW: Using GitLab Container Registry (via $CI_REGISTRY built-in variable)
+  # $CI_REGISTRY is automatically set to your GitLab's registry URL
+  # This ensures it works from any runner with proper network access
+  IMAGE_NAME: "fastapi-demo"
   
   # -----> LEGACY: Keeping old registry for backward compatibility (comment out when fully migrated)
   # REGISTRY: 192.168.0.113:5000
@@ -41,9 +42,8 @@ variables:
   PROMETHEUS_IP: 192.168.0.204
   GRAFANA_IP: 192.168.0.205
   
-  # -----> NEW: GitLab Container Registry credentials
-  REGISTRY_USER: $CI_REGISTRY_USER
-  REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
+  # -----> NEW: GitLab Container Registry credentials (using built-in GitLab variables)
+  # $CI_REGISTRY_USER and $CI_REGISTRY_PASSWORD are automatically set by GitLab
   
   # -----> NEW: Git commit info for manifest updates
   GIT_STRATEGY: clone
@@ -119,16 +119,16 @@ build:
     
     # -----> NEW: Tag for GitLab Container Registry
     echo "📦 Tagging for GitLab Container Registry..."
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     
     # -----> LEGACY: Also tag for old registry (can remove later)
     # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
     # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     
     echo "✅ Image tagged for GitLab Container Registry"
-    echo "   - ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
-    echo "   - ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
+    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
 # ============================================================================
 # PUSH STAGE: Upload to GitLab Container Registry
@@ -145,12 +145,13 @@ push:
     
     # -----> NEW: Login to GitLab Container Registry
     echo "🔑 Logging in to GitLab Container Registry..."
-    echo "${REGISTRY_PASSWORD}" | docker login -u ${REGISTRY_USER} --password-stdin ${GITLAB_REGISTRY}
+    # Using $CI_REGISTRY_PASSWORD and $CI_REGISTRY_USER (GitLab built-in)
+    echo "${CI_REGISTRY_PASSWORD}" | docker login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
     
     # -----> NEW: Push to GitLab Container Registry
-    echo "📤 Pushing image to GitLab registry: ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
-    docker push ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest
-    docker push ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    echo "📤 Pushing image to GitLab registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
+    docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
+    docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     echo "✅ Image pushed to GitLab Container Registry successfully"
     
     # -----> LEGACY: Also push to old registry (can remove later)
@@ -160,11 +161,11 @@ push:
     
     echo ""
     echo "📝 Pushed tags:"
-    echo "  - ${GITLAB_REGISTRY}/${IMAGE_NAME}:latest"
-    echo "  - ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "  - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
+    echo "  - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     echo ""
     echo "✅ Image now available in GitLab Container Registry"
-    echo "   Access at: http://192.168.0.190/root/project_nebula/container_registry"
+    echo "   Access at: http://192.168.0.190/${CI_PROJECT_PATH}/container_registry"
 
 # ============================================================================
 # DEPLOY STAGE: Update manifests in Git (ArgoCD handles deployment)
@@ -184,14 +185,14 @@ deploy:
     echo "==============================================="
     echo ""
     echo "✅ Image pushed to GitLab Container Registry"
-    echo "   Registry: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "   Registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     echo ""
     
     # -----> NEW: Update Kubernetes manifests with new image
     echo "📝 Updating Kubernetes manifests with new image tag..."
     
     # Update deployment.yaml with new image
-    sed -i "s|image:.*fastapi-demo.*|image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}|g" manifests/deployment.yaml
+    sed -i "s|image:.*fastapi-demo.*|image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}|g" manifests/deployment.yaml
     
     echo "✅ Updated manifests/deployment.yaml"
     
@@ -201,7 +202,7 @@ deploy:
     git add manifests/deployment.yaml
     git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA}
 
-    Image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     Commit: ${CI_COMMIT_SHA}
     Branch: ${CI_COMMIT_BRANCH}
     Pipeline: ${CI_PIPELINE_URL}"
@@ -311,10 +312,10 @@ release:
     IMAGE DETAILS
     ═══════════════════════════════════════════════════════════
     
-    Docker Image: ${GITLAB_REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    Docker Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     
     Container Registry Link:
-    http://192.168.0.190/root/project_nebula/container_registry
+    http://192.168.0.190/${CI_PROJECT_PATH}/container_registry
     
     ═══════════════════════════════════════════════════════════
     DEPLOYMENT ENDPOINTS
