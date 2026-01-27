@@ -48,28 +48,25 @@ variables:
   GITLAB_PORT: ${GITLAB_PORT:-80}
   GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
   
-  # Service Endpoints - Retrieved from K3s cluster
-  # Get these from: kubectl get services -A -o wide
-  # Or: ./scripts/check-complete-status.sh | grep -A5 "Endpoints"
-  ARGOCD_IP: ${ARGOCD_IP:-192.168.0.205}
-  ARGOCD_PORT: ${ARGOCD_PORT:-80}
-  ARGOCD_PROTOCOL: ${ARGOCD_PROTOCOL:-http}
-  ARGOCD_URL: ${ARGOCD_PROTOCOL}://${ARGOCD_IP}:${ARGOCD_PORT}
-  
-  FASTAPI_LB_IP: ${FASTAPI_LB_IP:-192.168.0.206}
-  FASTAPI_LB_PORT: ${FASTAPI_LB_PORT:-80}
-  FASTAPI_PROTOCOL: ${FASTAPI_PROTOCOL:-http}
-  FASTAPI_URL: ${FASTAPI_PROTOCOL}://${FASTAPI_LB_IP}:${FASTAPI_LB_PORT}
-  
-  PROMETHEUS_IP: ${PROMETHEUS_IP:-10.43.24.90}
-  PROMETHEUS_PORT: ${PROMETHEUS_PORT:-80}
-  PROMETHEUS_PROTOCOL: ${PROMETHEUS_PROTOCOL:-http}
-  PROMETHEUS_URL: ${PROMETHEUS_PROTOCOL}://${PROMETHEUS_IP}:${PROMETHEUS_PORT}
-  
-  GRAFANA_IP: ${GRAFANA_IP:-10.43.215.176}
-  GRAFANA_PORT: ${GRAFANA_PORT:-80}
-  GRAFANA_PROTOCOL: ${GRAFANA_PROTOCOL:-http}
-  GRAFANA_URL: ${GRAFANA_PROTOCOL}://${GRAFANA_IP}:${GRAFANA_PORT}
+  # ============================================================================
+  # SERVICE ENDPOINTS - LOADED FROM CONFIG FILE
+  # ============================================================================
+  # These values are loaded from config/service-endpoints.conf
+  # DO NOT hardcode values here - update the config file instead!
+  #
+  # To update IPs:
+  #   1. Auto-detect from cluster:
+  #      ./scripts/detect-service-ips.sh --raw
+  #
+  #   2. Manual update (interactive):
+  #      ./scripts/update-service-ips.sh
+  #
+  #   3. Update with defaults (fixed IPs):
+  #      ./scripts/update-service-ips.sh --no-prompt
+  #
+  # Config file location: config/service-endpoints.conf
+  # ============================================================================
+  SERVICE_CONFIG_FILE: "config/service-endpoints.conf"
   
   # -----> NEW: GitLab Container Registry credentials (using built-in GitLab variables)
   # $CI_REGISTRY_USER and $CI_REGISTRY_PASSWORD are automatically set by GitLab
@@ -132,7 +129,17 @@ workflow:
 
 # -----> NEW BEFORE_SCRIPT (GitOps Version)
 # Setup Git credentials for committing manifest updates
+# Also load service endpoints from config file
 before_script: |
+  # Load service endpoint configuration
+  if [ -f "config/service-endpoints.conf" ]; then
+    echo "📋 Loading service endpoints from config..."
+    source config/service-endpoints.conf
+  else
+    echo "⚠️ WARNING: config/service-endpoints.conf not found!"
+    echo "   Create it with: ./scripts/update-service-ips.sh --no-prompt"
+  fi
+  
   # Configure Git for automated commits
   git config --global user.email "gitlab-ci@project-nebula.local"
   git config --global user.name "GitLab CI/CD"
@@ -332,8 +339,11 @@ deploy:
     echo "   5. ⏳ K3s cluster will receive new image"
     echo ""
     echo "📊 Monitor at:"
-    echo "   • ArgoCD UI: ${ARGOCD_URL}"
-    echo "   • FastAPI: ${FASTAPI_URL}"
+    echo "   • ArgoCD: ${ARGOCD_URL}"
+    echo "   • FastAPI: ${FASTAPI_URL} (Docs: ${FASTAPI_DOCS_URL})"
+    echo "   • Prometheus: ${PROMETHEUS_URL}"
+    echo "   • Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})"
+    echo "   • Kubernetes API: ${KUBE_API_SERVER}"
     echo "   • GitLab Registry: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry"
     
 
@@ -430,23 +440,36 @@ release:
     ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry
     
     ═══════════════════════════════════════════════════════════
-    DEPLOYMENT ENDPOINTS
+    DEPLOYMENT ENDPOINTS - FROM SERVICE CONFIG
     ═══════════════════════════════════════════════════════════
     
-    ArgoCD Dashboard:
-    ${ARGOCD_URL}
+    🔵 FastAPI Application
+      ${FASTAPI_URL}
+      - API: ${FASTAPI_URL}
+      - Docs: ${FASTAPI_DOCS_URL}
+      - Health: ${FASTAPI_HEALTH_URL}
+      - Metrics: ${FASTAPI_METRICS_URL}
     
-    FastAPI Application:
-    ${FASTAPI_URL}
-    - Swagger Docs: ${FASTAPI_URL}/docs
-    - Health Check: ${FASTAPI_URL}/health
-    - Metrics: ${FASTAPI_URL}/metrics
+    📊 Monitoring Services
+      - Prometheus: ${PROMETHEUS_URL}
+      - Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})
     
-    Prometheus Metrics:
-    ${PROMETHEUS_URL}
+    ⚙️  Management
+      - ArgoCD: ${ARGOCD_URL}
     
-    Grafana Dashboards:
-    ${GRAFANA_URL}:3000 (admin/grafana)
+    ☸️  Kubernetes
+      - API Server: ${KUBE_API_SERVER}
+    
+    ═══════════════════════════════════════════════════════════
+    SERVICE CONFIGURATION
+    ═══════════════════════════════════════════════════════════
+    
+    All service endpoints are managed in: scripts/service-endpoints.conf
+    
+    To update endpoints after deployment:
+      ./scripts/detect-service-ips.sh --update    (auto-detect from cluster)
+      ./scripts/update-service-ips.sh              (interactive mode)
+      ./scripts/update-service-ips.sh --reset      (reset to defaults)
     
     ═══════════════════════════════════════════════════════════
     KUBERNETES INFO
