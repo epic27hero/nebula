@@ -5,11 +5,10 @@ metadata:
   namespace: argocd
 spec:
   project: default
-
   source:
-    repoURL: https://prometheus-community.github.io/helm-charts
-    chart: prometheus
-    targetRevision: "25.13.0"
+    repoURL: http://192.168.0.190/root/project_nebula.git
+    path: monitoring/prometheus
+    targetRevision: main
     helm:
       values: |
         server:
@@ -21,15 +20,19 @@ spec:
             requests:
               cpu: 250m
               memory: 512Mi
+          persistentVolume:
+            enabled: false
         alertmanager:
           enabled: true
         pushgateway:
           enabled: false
-
+        nodeExporter:
+          enabled: false
+        kubeStateMetrics:
+          enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
-
   syncPolicy:
     automated:
       prune: true

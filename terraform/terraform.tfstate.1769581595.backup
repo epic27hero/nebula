@@ -1,44 +1,44 @@
 {
   "version": 4,
   "terraform_version": "1.14.3",
-  "serial": 208,
+  "serial": 167,
   "lineage": "7a28b2cc-46a0-b6ea-32a6-ccf1c382a123",
   "outputs": {
     "service_ips": {
       "value": {
         "argocd": "192.168.0.202",
-        "envoy": null,
+        "envoy": "192.168.0.210",
         "fastapi": "192.168.0.203",
-        "grafana": null,
-        "prometheus": null
+        "grafana": "192.168.0.205",
+        "prometheus": "192.168.0.204"
       },
       "type": [
         "object",
         {
           "argocd": "string",
-          "envoy": "dynamic",
+          "envoy": "string",
           "fastapi": "string",
-          "grafana": "dynamic",
-          "prometheus": "dynamic"
+          "grafana": "string",
+          "prometheus": "string"
         }
       ]
     },
     "service_urls": {
       "value": {
-        "argocd": "https://192.168.0.202",
-        "envoy": null,
+        "argocd": "http://192.168.0.202",
+        "envoy": "http://192.168.0.210",
         "fastapi": "http://192.168.0.203",
-        "grafana": null,
-        "prometheus": null
+        "grafana": "http://192.168.0.205:3000",
+        "prometheus": "http://192.168.0.204:9090"
       },
       "type": [
         "object",
         {
           "argocd": "string",
-          "envoy": "dynamic",
+          "envoy": "string",
           "fastapi": "string",
-          "grafana": "dynamic",
-          "prometheus": "dynamic"
+          "grafana": "string",
+          "prometheus": "string"
         }
       ]
     }
@@ -155,8 +155,8 @@
                   "monitoring": "enabled"
                 },
                 "name": "monitoring",
-                "resource_version": "3002074",
-                "uid": "1631d3d8-035c-462a-9440-336a63a20912"
+                "resource_version": "1660058",
+                "uid": "8349ef6e-3649-489e-bd97-f2b9eb790e14"
               }
             ],
             "timeouts": null,
@@ -168,128 +168,6 @@
             "api_version": "v1",
             "kind": "Namespace",
             "name": "monitoring"
-          },
-          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ=="
-        }
-      ]
-    },
-    {
-      "module": "module.argocd[0]",
-      "mode": "managed",
-      "type": "helm_release",
-      "name": "argocd",
-      "provider": "provider[\"registry.terraform.io/hashicorp/helm\"]",
-      "instances": [
-        {
-          "schema_version": 1,
-          "attributes": {
-            "atomic": false,
-            "chart": "argo-cd",
-            "cleanup_on_fail": false,
-            "create_namespace": false,
-            "dependency_update": false,
-            "description": null,
-            "devel": null,
-            "disable_crd_hooks": false,
-            "disable_openapi_validation": false,
-            "disable_webhooks": false,
-            "force_update": false,
-            "id": "argocd",
-            "keyring": null,
-            "lint": false,
-            "manifest": null,
-            "max_history": 0,
-            "metadata": [
-              {
-                "app_version": "v2.13.2",
-                "chart": "argo-cd",
-                "first_deployed": 1769581782,
-                "last_deployed": 1769581782,
-                "name": "argocd",
-                "namespace": "argocd",
-                "notes": "In order to access the server UI you have the following options:\n\n1. kubectl port-forward service/argocd-server -n argocd 8080:443\n\n    and then open the browser on http://localhost:8080 and accept the certificate\n\n2. enable ingress in the values file `server.ingress.enabled` and either\n      - Add the annotation for ssl passthrough: https://argo-cd.readthedocs.io/en/stable/operator-manual/ingress/#option-1-ssl-passthrough\n      - Set the `configs.params.\"server.insecure\"` in the values file and terminate SSL at your ingress: https://argo-cd.readthedocs.io/en/stable/operator-manual/ingress/#option-2-multiple-ingress-objects-and-hosts\n\n\nAfter reaching the UI the first time you can login with username: admin and the random password generated during the installation. You can find the password by running:\n\nkubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath=\"{.data.password}\" | base64 -d\n\n(You should delete the initial secret afterwards as suggested by the Getting Started Guide: https://argo-cd.readthedocs.io/en/stable/getting_started/#4-login-using-the-cli)\n",
-                "revision": 1,
-                "values": "{\"controller\":{\"resources\":{\"requests\":{\"cpu\":\"100m\",\"memory\":\"256Mi\"}}},\"repoServer\":{\"resources\":{\"requests\":{\"cpu\":\"50m\",\"memory\":\"128Mi\"}}},\"server\":{\"resources\":{\"requests\":{\"cpu\":\"50m\",\"memory\":\"128Mi\"}},\"service\":{\"type\":\"LoadBalancer\"}}}",
-                "version": "7.7.12"
-              }
-            ],
-            "name": "argocd",
-            "namespace": "argocd",
-            "pass_credentials": false,
-            "postrender": [],
-            "recreate_pods": false,
-            "render_subchart_notes": true,
-            "replace": false,
-            "repository": "https://argoproj.github.io/argo-helm",
-            "repository_ca_file": null,
-            "repository_cert_file": null,
-            "repository_key_file": null,
-            "repository_password": null,
-            "repository_username": null,
-            "reset_values": false,
-            "reuse_values": false,
-            "set": [],
-            "set_list": [],
-            "set_sensitive": [],
-            "skip_crds": false,
-            "status": "deployed",
-            "timeout": 600,
-            "upgrade_install": null,
-            "values": [
-              "\"controller\":\n  \"resources\":\n    \"requests\":\n      \"cpu\": \"100m\"\n      \"memory\": \"256Mi\"\n\"repoServer\":\n  \"resources\":\n    \"requests\":\n      \"cpu\": \"50m\"\n      \"memory\": \"128Mi\"\n\"server\":\n  \"resources\":\n    \"requests\":\n      \"cpu\": \"50m\"\n      \"memory\": \"128Mi\"\n  \"service\":\n    \"type\": \"LoadBalancer\"\n"
-            ],
-            "verify": false,
-            "version": "7.7.12",
-            "wait": true,
-            "wait_for_jobs": false
-          },
-          "sensitive_attributes": [
-            [
-              {
-                "type": "get_attr",
-                "value": "repository_password"
-              }
-            ]
-          ],
-          "identity_schema_version": 0,
-          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
-          "dependencies": [
-            "module.argocd.kubernetes_namespace_v1.argocd"
-          ]
-        }
-      ]
-    },
-    {
-      "module": "module.argocd[0]",
-      "mode": "managed",
-      "type": "kubernetes_namespace_v1",
-      "name": "argocd",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "argocd",
-            "metadata": [
-              {
-                "annotations": {},
-                "generate_name": "",
-                "generation": 0,
-                "labels": {},
-                "name": "argocd",
-                "resource_version": "3002077",
-                "uid": "d8cb89fe-0e2f-430c-8e14-73f2929903eb"
-              }
-            ],
-            "timeouts": null,
-            "wait_for_default_service_account": false
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 1,
-          "identity": {
-            "api_version": "v1",
-            "kind": "Namespace",
-            "name": "argocd"
           },
           "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ=="
         }
@@ -323,16 +201,16 @@
             "max_history": 0,
             "metadata": [
               {
-                "app_version": "v1.6.3",
+                "app_version": "v1.6.2",
                 "chart": "gateway-helm",
-                "first_deployed": 1769581781,
-                "last_deployed": 1769581781,
+                "first_deployed": 1768365539,
+                "last_deployed": 1768365539,
                 "name": "envoy-gateway",
                 "namespace": "gateway-system",
                 "notes": "**************************************************************************\n*** PLEASE BE PATIENT: Envoy Gateway may take a few minutes to install ***\n**************************************************************************\n\nEnvoy Gateway is an open source project for managing Envoy Proxy as a standalone or Kubernetes-based application gateway.\n\nThank you for installing Envoy Gateway! 🎉\n\nYour release is named: envoy-gateway. 🎉\n\nYour release is in namespace: gateway-system. 🎉\n\nTo learn more about the release, try:\n\n  $ helm status envoy-gateway -n gateway-system\n  $ helm get all envoy-gateway -n gateway-system\n\nTo have a quickstart of Envoy Gateway, please refer to https://gateway.envoyproxy.io/latest/tasks/quickstart.\n\nTo get more details, please visit https://gateway.envoyproxy.io and https://github.com/envoyproxy/gateway.\n",
                 "revision": 1,
                 "values": "{}",
-                "version": "1.6.3"
+                "version": "1.6.2"
               }
             ],
             "name": "envoy-gateway",
@@ -359,7 +237,7 @@
             "upgrade_install": null,
             "values": null,
             "verify": false,
-            "version": "1.6.3",
+            "version": "1.6.2",
             "wait": true,
             "wait_for_jobs": false
           },
@@ -397,14 +275,14 @@
             "ignore_fields": null,
             "kind": "HTTPRoute",
             "live_manifest_incluster": "0c3c0d0c61ab6693f0e3000493dcc5ae10d573b12a213c43812f05b7cf3a5bde",
-            "live_uid": "6d68693f-c8f5-4f7c-9584-bb13a3556ca6",
+            "live_uid": "54fbbf04-9104-4564-8187-b55b263f98cb",
             "name": "fastapi-route",
             "namespace": "production",
             "override_namespace": null,
             "sensitive_fields": null,
             "server_side_apply": false,
             "timeouts": null,
-            "uid": "6d68693f-c8f5-4f7c-9584-bb13a3556ca6",
+            "uid": "a22bd275-640f-477e-888c-85d7dab2d663",
             "validate_schema": true,
             "wait": null,
             "wait_for_rollout": true,
@@ -447,68 +325,6 @@
       "module": "module.gateway[0]",
       "mode": "managed",
       "type": "kubectl_manifest",
-      "name": "gateway_class",
-      "provider": "provider[\"registry.terraform.io/gavinbunney/kubectl\"]",
-      "instances": [
-        {
-          "schema_version": 1,
-          "attributes": {
-            "api_version": "gateway.networking.k8s.io/v1",
-            "apply_only": false,
-            "force_conflicts": false,
-            "force_new": false,
-            "id": "/apis/gateway.networking.k8s.io/v1/gatewayclasses/envoy-gateway",
-            "ignore_fields": null,
-            "kind": "GatewayClass",
-            "live_manifest_incluster": "a601883ffefc9a457e4b1031dfbdd5f5211e7e3fb4532fae9c584611837645a3",
-            "live_uid": "434eef74-99c2-4def-9e86-a3f31897ed45",
-            "name": "envoy-gateway",
-            "namespace": null,
-            "override_namespace": null,
-            "sensitive_fields": null,
-            "server_side_apply": false,
-            "timeouts": null,
-            "uid": "434eef74-99c2-4def-9e86-a3f31897ed45",
-            "validate_schema": true,
-            "wait": null,
-            "wait_for_rollout": true,
-            "yaml_body": "apiVersion: gateway.networking.k8s.io/v1\nkind: GatewayClass\nmetadata:\n  name: envoy-gateway\nspec:\n  controllerName: gateway.envoyproxy.io/gatewayclass-controller\n",
-            "yaml_body_parsed": "apiVersion: gateway.networking.k8s.io/v1\nkind: GatewayClass\nmetadata:\n  name: envoy-gateway\nspec:\n  controllerName: gateway.envoyproxy.io/gatewayclass-controller\n",
-            "yaml_incluster": "a601883ffefc9a457e4b1031dfbdd5f5211e7e3fb4532fae9c584611837645a3"
-          },
-          "sensitive_attributes": [
-            [
-              {
-                "type": "get_attr",
-                "value": "live_manifest_incluster"
-              }
-            ],
-            [
-              {
-                "type": "get_attr",
-                "value": "yaml_body"
-              }
-            ],
-            [
-              {
-                "type": "get_attr",
-                "value": "yaml_incluster"
-              }
-            ]
-          ],
-          "identity_schema_version": 0,
-          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDB9LCJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
-          "dependencies": [
-            "module.gateway.helm_release.envoy",
-            "module.gateway.kubernetes_namespace_v1.gw"
-          ]
-        }
-      ]
-    },
-    {
-      "module": "module.gateway[0]",
-      "mode": "managed",
-      "type": "kubectl_manifest",
       "name": "prod_gateway",
       "provider": "provider[\"registry.terraform.io/gavinbunney/kubectl\"]",
       "instances": [
@@ -523,14 +339,14 @@
             "ignore_fields": null,
             "kind": "Gateway",
             "live_manifest_incluster": "7f49f6a9e29c3e078050c58349ab6bfeb6691e0b6c336ed11ee298730026a312",
-            "live_uid": "8404dd09-00e6-43a0-8da1-aa643e62ca91",
+            "live_uid": "85da408c-204b-4ed3-8be8-9fcc7f4e8a49",
             "name": "prod-gateway",
             "namespace": "production",
             "override_namespace": null,
             "sensitive_fields": null,
             "server_side_apply": false,
             "timeouts": null,
-            "uid": "8404dd09-00e6-43a0-8da1-aa643e62ca91",
+            "uid": "7df9e3e0-edfc-4c58-9907-a9876e9df221",
             "validate_schema": true,
             "wait": null,
             "wait_for_rollout": true,
@@ -586,8 +402,8 @@
                 "generation": 0,
                 "labels": {},
                 "name": "gateway-system",
-                "resource_version": "3002075",
-                "uid": "c2dc4d42-86d6-4c0a-96f6-83bc5737ffee"
+                "resource_version": "1660057",
+                "uid": "84c58693-351c-43aa-9ca8-f6a9b66b3069"
               }
             ],
             "timeouts": null,
@@ -634,8 +450,8 @@
               {
                 "app_version": "v0.14.9",
                 "chart": "metallb",
-                "first_deployed": 1769581780,
-                "last_deployed": 1769581780,
+                "first_deployed": 1768365534,
+                "last_deployed": 1768365534,
                 "name": "metallb",
                 "namespace": "metallb-system",
                 "notes": "MetalLB is now running in the cluster.\n\nNow you can configure it via its CRs. Please refer to the metallb official docs\non how to use the CRs.\n",
@@ -706,14 +522,14 @@
             "ignore_fields": null,
             "kind": "L2Advertisement",
             "live_manifest_incluster": "922bffef532e2775dff742f399e27e3e31dfebd22a4d10e749366397a33827be",
-            "live_uid": "36874eb3-ff10-4bc7-b405-aa79f2cdab83",
+            "live_uid": "f79b90c6-22e3-4167-85dd-83a0d9af985a",
             "name": "l2",
             "namespace": "metallb-system",
             "override_namespace": null,
             "sensitive_fields": null,
             "server_side_apply": false,
             "timeouts": null,
-            "uid": "36874eb3-ff10-4bc7-b405-aa79f2cdab83",
+            "uid": "f79b90c6-22e3-4167-85dd-83a0d9af985a",
             "validate_schema": true,
             "wait": null,
             "wait_for_rollout": true,
@@ -769,14 +585,14 @@
             "ignore_fields": null,
             "kind": "IPAddressPool",
             "live_manifest_incluster": "092a3ec7229b74e3a04d4cffa7edc7aa3a275499915c2de8fb0e2c676136ab7e",
-            "live_uid": "82c604bb-2f9c-440b-aa5b-be74535cde14",
+            "live_uid": "1753a639-9959-40d3-acc9-808fab4ebc7f",
             "name": "pool",
             "namespace": "metallb-system",
             "override_namespace": null,
             "sensitive_fields": null,
             "server_side_apply": false,
             "timeouts": null,
-            "uid": "82c604bb-2f9c-440b-aa5b-be74535cde14",
+            "uid": "1753a639-9959-40d3-acc9-808fab4ebc7f",
             "validate_schema": true,
             "wait": null,
             "wait_for_rollout": true,
@@ -831,8 +647,8 @@
                 "generation": 0,
                 "labels": {},
                 "name": "metallb-system",
-                "resource_version": "3002076",
-                "uid": "ba22feb9-5327-498c-868b-03173a0a1f88"
+                "resource_version": "1660059",
+                "uid": "b4bd362d-bed0-4ed3-9309-23468ae26e3d"
               }
             ],
             "timeouts": null,
@@ -846,280 +662,6 @@
             "name": "metallb-system"
           },
           "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ=="
-        }
-      ]
-    },
-    {
-      "module": "module.service_ips",
-      "mode": "data",
-      "type": "kubernetes_service",
-      "name": "argocd",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "argocd/argocd-server",
-            "metadata": [
-              {
-                "annotations": {
-                  "meta.helm.sh/release-name": "argocd",
-                  "meta.helm.sh/release-namespace": "argocd",
-                  "metallb.io/ip-allocated-from-pool": "pool"
-                },
-                "generation": 0,
-                "labels": {
-                  "app.kubernetes.io/component": "server",
-                  "app.kubernetes.io/instance": "argocd",
-                  "app.kubernetes.io/managed-by": "Helm",
-                  "app.kubernetes.io/name": "argocd-server",
-                  "app.kubernetes.io/part-of": "argocd",
-                  "app.kubernetes.io/version": "v2.13.2",
-                  "helm.sh/chart": "argo-cd-7.7.12"
-                },
-                "name": "argocd-server",
-                "namespace": "argocd",
-                "resource_version": "3002748",
-                "uid": "73283a1f-ada3-459f-a67f-736ce02464e2"
-              }
-            ],
-            "spec": [
-              {
-                "allocate_load_balancer_node_ports": true,
-                "cluster_ip": "10.43.181.184",
-                "cluster_ips": [
-                  "10.43.181.184"
-                ],
-                "external_ips": [],
-                "external_name": "",
-                "external_traffic_policy": "Cluster",
-                "health_check_node_port": 0,
-                "internal_traffic_policy": "Cluster",
-                "ip_families": [
-                  "IPv4"
-                ],
-                "ip_family_policy": "SingleStack",
-                "load_balancer_class": "",
-                "load_balancer_ip": "",
-                "load_balancer_source_ranges": [],
-                "port": [
-                  {
-                    "app_protocol": "",
-                    "name": "http",
-                    "node_port": 30516,
-                    "port": 80,
-                    "protocol": "TCP",
-                    "target_port": "8080"
-                  },
-                  {
-                    "app_protocol": "",
-                    "name": "https",
-                    "node_port": 30424,
-                    "port": 443,
-                    "protocol": "TCP",
-                    "target_port": "8080"
-                  }
-                ],
-                "publish_not_ready_addresses": false,
-                "selector": {
-                  "app.kubernetes.io/instance": "argocd",
-                  "app.kubernetes.io/name": "argocd-server"
-                },
-                "session_affinity": "None",
-                "session_affinity_config": [],
-                "type": "LoadBalancer"
-              }
-            ],
-            "status": [
-              {
-                "load_balancer": [
-                  {
-                    "ingress": [
-                      {
-                        "hostname": "",
-                        "ip": "192.168.0.202"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 0
-        }
-      ]
-    },
-    {
-      "module": "module.service_ips",
-      "mode": "data",
-      "type": "kubernetes_service",
-      "name": "envoy",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "gateway-system/envoy-gateway-lb-static",
-            "metadata": [
-              {
-                "annotations": {},
-                "generation": 0,
-                "labels": {},
-                "name": "envoy-gateway-lb-static",
-                "namespace": "gateway-system",
-                "resource_version": "",
-                "uid": ""
-              }
-            ],
-            "spec": null,
-            "status": null
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 0
-        }
-      ]
-    },
-    {
-      "module": "module.service_ips",
-      "mode": "data",
-      "type": "kubernetes_service",
-      "name": "fastapi",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "production/fastapi-app-lb",
-            "metadata": [
-              {
-                "annotations": {
-                  "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"fastapi-app-lb\",\"namespace\":\"production\"},\"spec\":{\"loadBalancerIP\":\"192.168.0.203\",\"ports\":[{\"port\":80,\"protocol\":\"TCP\",\"targetPort\":8000}],\"selector\":{\"app\":\"fastapi\"},\"type\":\"LoadBalancer\"}}\n",
-                  "metallb.io/ip-allocated-from-pool": "pool"
-                },
-                "generation": 0,
-                "labels": {},
-                "name": "fastapi-app-lb",
-                "namespace": "production",
-                "resource_version": "3002751",
-                "uid": "9b2a3245-315c-40af-8c7f-20dd6afcbf01"
-              }
-            ],
-            "spec": [
-              {
-                "allocate_load_balancer_node_ports": true,
-                "cluster_ip": "10.43.36.134",
-                "cluster_ips": [
-                  "10.43.36.134"
-                ],
-                "external_ips": [],
-                "external_name": "",
-                "external_traffic_policy": "Cluster",
-                "health_check_node_port": 0,
-                "internal_traffic_policy": "Cluster",
-                "ip_families": [
-                  "IPv4"
-                ],
-                "ip_family_policy": "SingleStack",
-                "load_balancer_class": "",
-                "load_balancer_ip": "192.168.0.203",
-                "load_balancer_source_ranges": [],
-                "port": [
-                  {
-                    "app_protocol": "",
-                    "name": "",
-                    "node_port": 31444,
-                    "port": 80,
-                    "protocol": "TCP",
-                    "target_port": "8000"
-                  }
-                ],
-                "publish_not_ready_addresses": false,
-                "selector": {
-                  "app": "fastapi"
-                },
-                "session_affinity": "None",
-                "session_affinity_config": [],
-                "type": "LoadBalancer"
-              }
-            ],
-            "status": [
-              {
-                "load_balancer": [
-                  {
-                    "ingress": [
-                      {
-                        "hostname": "",
-                        "ip": "192.168.0.203"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 0
-        }
-      ]
-    },
-    {
-      "module": "module.service_ips",
-      "mode": "data",
-      "type": "kubernetes_service",
-      "name": "grafana",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "monitoring/grafana-lb-static",
-            "metadata": [
-              {
-                "annotations": {},
-                "generation": 0,
-                "labels": {},
-                "name": "grafana-lb-static",
-                "namespace": "monitoring",
-                "resource_version": "",
-                "uid": ""
-              }
-            ],
-            "spec": null,
-            "status": null
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 0
-        }
-      ]
-    },
-    {
-      "module": "module.service_ips",
-      "mode": "data",
-      "type": "kubernetes_service",
-      "name": "prometheus",
-      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
-      "instances": [
-        {
-          "schema_version": 0,
-          "attributes": {
-            "id": "monitoring/prometheus-lb-static",
-            "metadata": [
-              {
-                "annotations": {},
-                "generation": 0,
-                "labels": {},
-                "name": "prometheus-lb-static",
-                "namespace": "monitoring",
-                "resource_version": "",
-                "uid": ""
-              }
-            ],
-            "spec": null,
-            "status": null
-          },
-          "sensitive_attributes": [],
-          "identity_schema_version": 0
         }
       ]
     }

@@ -2,21 +2,30 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fastapi-app
+  labels:
+    app.kubernetes.io/name: fastapi-app
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: fastapi
+      app.kubernetes.io/name: fastapi-app
   template:
     metadata:
       labels:
         app: fastapi
+        app.kubernetes.io/name: fastapi-app
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - name: app
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8000
+          name: http
         env:
         {{- range .Values.env }}
         - name: {{ .name }}
@@ -29,3 +38,15 @@ spec:
               fieldPath: {{ .valueFrom.fieldRef.fieldPath }}
           {{- end }}
         {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5

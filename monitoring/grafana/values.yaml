@@ -6,15 +6,21 @@ service:
 adminUser: admin
 adminPassword: admin123
 
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: local-path
+
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
     - name: Prometheus
       type: prometheus
-      url: http://prometheus-server.monitoring.svc.cluster.local
+      url: http://prometheus-server.monitoring.svc.cluster.local:80
       access: proxy
       isDefault: true
+      editable: true
 
 dashboardProviders:
   dashboardproviders.yaml:
@@ -22,7 +28,7 @@ dashboardProviders:
     providers:
     - name: default
       orgId: 1
-      folder: Kubernetes
+      folder: ""
       type: file
       disableDeletion: false
       editable: true
@@ -31,7 +37,11 @@ dashboardProviders:
 
 dashboards:
   default:
-    kubernetes:
+    kubernetes-cluster:
       gnetId: 6417
+      revision: 1
+      datasource: Prometheus
+    fastapi-metrics:
+      gnetId: 11074
       revision: 1
       datasource: Prometheus

@@ -126,8 +126,8 @@ resource "helm_release" "envoy" {
   create_namespace = false
 
   dependency_update = true
-  atomic             = true
-  cleanup_on_fail    = true
+  atomic            = true
+  cleanup_on_fail   = true
 
   depends_on = [
     kubernetes_namespace_v1.gw

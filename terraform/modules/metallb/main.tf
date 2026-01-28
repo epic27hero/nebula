@@ -34,11 +34,11 @@
 #       addresses = [var.ip_range]
 #     }
 #   })
-  
+
 #   lifecycle {
 #     ignore_changes = [yaml_body]
 #   }
-  
+
 #   depends_on = [helm_release.metallb]
 # }
 

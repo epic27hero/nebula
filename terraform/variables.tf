@@ -13,31 +13,31 @@ variable "enable_dashboard" { default = true }
 variable "argocd_lb_ip" {
   description = "Static LoadBalancer IP for ArgoCD"
   type        = string
-  default     = "192.168.0.205"
+  default     = "192.168.0.202"
 }
 
 variable "prometheus_lb_ip" {
   description = "Static LoadBalancer IP for Prometheus"
   type        = string
-  default     = "192.168.0.202"
+  default     = "192.168.0.204"
 }
 
 variable "grafana_lb_ip" {
   description = "Static LoadBalancer IP for Grafana"
   type        = string
-  default     = "192.168.0.203"
+  default     = "192.168.0.205"
 }
 
 variable "fastapi_lb_ip" {
   description = "Static LoadBalancer IP for FastAPI App"
   type        = string
-  default     = "192.168.0.206"
+  default     = "192.168.0.203"
 }
 
 variable "envoy_lb_ip" {
   description = "Static LoadBalancer IP for Envoy Gateway"
   type        = string
-  default     = "192.168.0.204"
+  default     = "192.168.0.210"
 }
 
 # variable "dashboard_admin_user" { default = "admin" }

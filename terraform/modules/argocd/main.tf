@@ -80,33 +80,33 @@ resource "helm_release" "argocd" {
 ############################################
 # ArgoCD Application (GitOps)
 ############################################
-resource "kubectl_manifest" "fastapi_prod_app" {
+# resource "kubectl_manifest" "fastapi_prod_app" {
 
-  depends_on = [
-    helm_release.argocd
-  ]
+#   depends_on = [
+#     helm_release.argocd
+#   ]
 
-  yaml_body = <<EOF
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: fastapi-prod
-  namespace: argocd
-spec:
-  project: default
+#   yaml_body = <<EOF
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: fastapi-prod
+#   namespace: argocd
+# spec:
+#   project: default
 
-  source:
-    repoURL: http://192.168.0.190/root/project_nebula.git
-    targetRevision: master
-    path: k8s/production
+#   source:
+#     repoURL: http://192.168.0.190/root/project_nebula.git
+#     targetRevision: master
+#     path: k8s/production
 
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: production
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: production
 
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-EOF
-}
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+# EOF
+# }

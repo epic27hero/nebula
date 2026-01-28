@@ -2,7 +2,7 @@ server:
   replicaCount: 1
 
   service:
-    type: ClusterIP
+    type: LoadBalancer
 
   retention: "15d"
 
@@ -26,12 +26,18 @@ nodeExporter:
 pushgateway:
   enabled: false
 
-extraScrapeConfigs: |
-  - job_name: "fastapi-app"
-    metrics_path: /metrics
-    kubernetes_sd_configs:
-    - role: pod
-    relabel_configs:
-    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-      action: keep
-      regex: fastapi-app
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+    - job_name: "fastapi-app"
+      metrics_path: /metrics
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        action: keep
+        regex: fastapi-app
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
