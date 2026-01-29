@@ -6,6 +6,10 @@ metadata:
 spec:
   project: default
 
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
   source:
     repoURL: https://grafana.github.io/helm-charts
     chart: grafana
@@ -16,13 +20,13 @@ spec:
         adminPassword: "SouvikFactentry@7#"
         forceAdminPassword: true
 
-      persistence:
-        enabled: true
-        size: 1Gi
-        storageClassName: local-path
+        persistence:
+          enabled: true
+          size: 1Gi
+          storageClassName: local-path
 
-      service:
-        type: LoadBalancer
+        service:
+          type: LoadBalancer
 
         datasources:
           datasources.yaml:
@@ -34,14 +38,9 @@ spec:
                 access: proxy
                 isDefault: true
 
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
-
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-  revisionHistoryLimit: 10

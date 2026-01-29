@@ -3,8 +3,8 @@ replicas: 1
 service:
   type: LoadBalancer
 
-adminUser: admin
-adminPassword: admin123
+# adminUser: admin
+# adminPassword: admin123
 
 persistence:
   enabled: true
