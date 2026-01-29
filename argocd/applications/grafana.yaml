@@ -16,8 +16,13 @@ spec:
         adminPassword: "SouvikFactentry@7#"
         forceAdminPassword: true
 
-        service:
-          type: LoadBalancer
+      persistence:
+        enabled: true
+        size: 1Gi
+        storageClassName: local-path
+
+      service:
+        type: LoadBalancer
 
         datasources:
           datasources.yaml:
