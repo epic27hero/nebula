@@ -17,6 +17,8 @@ spec:
           service:
             type: LoadBalancer
           retention: "30d"
+          global:
+            scrape_interval: 15s
           resources:
             requests:
               cpu: 250m
@@ -25,6 +27,10 @@ spec:
           enabled: true
         pushgateway:
           enabled: false
+        nodeExporter:
+          enabled: true
+        kubeStateMetrics:
+          enabled: true  
 
   destination:
     server: https://kubernetes.default.svc

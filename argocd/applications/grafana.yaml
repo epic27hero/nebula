@@ -7,26 +7,26 @@ spec:
   project: default
 
   source:
-    repoURL: http://192.168.0.190/root/project_nebula.git
-    path: monitoring/grafana
-    targetRevision: main
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: "7.3.7"
     helm:
       values: |
-        replicas: 1
+        adminUser: admin
+        adminPassword: SouvikFactentry@7#
+
         service:
           type: LoadBalancer
-        persistence:
-          enabled: true
-          size: 1Gi
+
         datasources:
           datasources.yaml:
             apiVersion: 1
             datasources:
-            - name: Prometheus
-              type: prometheus
-              url: http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090
-              access: proxy
-              isDefault: true
+              - name: Prometheus
+                type: prometheus
+                url: http://prometheus-server.monitoring.svc.cluster.local
+                access: proxy
+                isDefault: true
 
   destination:
     server: https://kubernetes.default.svc
@@ -37,5 +37,5 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
+      - CreateNamespace=true
   revisionHistoryLimit: 10

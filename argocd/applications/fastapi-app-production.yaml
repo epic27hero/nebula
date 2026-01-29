@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: http://192.168.0.190/root/project_nebula.git
     path: helm/fastapi-app
-    targetRevision: main
+    targetRevision: master   # 🔥 FIXED
     helm:
       values: |
         image:
@@ -21,5 +21,5 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
+      - CreateNamespace=true
   revisionHistoryLimit: 10
