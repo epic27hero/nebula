@@ -13,7 +13,7 @@ spec:
     helm:
       values: |
         adminUser: admin
-        adminPassword: SouvikFactentry@7#
+        adminPassword: "SouvikFactentry@7#"
         forceAdminPassword: true
 
         service:
