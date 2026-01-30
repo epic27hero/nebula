@@ -15,7 +15,7 @@ from kubernetes.client.exceptions import ApiException
 # App metadata
 # -----------------------------------------------------------------------------
 APP_NAME = "fastapi-demo"
-APP_VERSION = os.getenv("APP_VERSION", "v1.0.5")
+APP_VERSION = os.getenv("APP_VERSION", "v1.0.6")
 BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
 START_TIME = time.time()
 
