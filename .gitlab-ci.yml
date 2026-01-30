@@ -300,32 +300,37 @@ deploy:
     echo "   Repository: ${REGISTRY}/${IMAGE_NAME}"
     echo "   Tag: ${CI_COMMIT_SHORT_SHA}"
     
-    # -----> NEW: Commit and push updated Helm values to Git
+    # -----> Commit and push updated Helm values to Git
     echo ""
     echo "📤 Committing Helm values update to Git..."
 
     git config user.email "gitlab-ci@project-nebula.local"
     git config user.name "GitLab CI/CD"
-    git add helm/fastapi-app/values.yaml
-    git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
-
-    Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    Commit: ${CI_COMMIT_SHA}
-    Branch: ${CI_COMMIT_BRANCH}
-    Pipeline: ${CI_PIPELINE_URL}"
     
-    # Push back to repository using CI_JOB_TOKEN for authentication
-    # Note: Using HEAD:branch syntax because runner is in detached HEAD state
-    # CI_JOB_TOKEN is a built-in GitLab token that allows the runner to push
-    echo "📤 Pushing updated Helm values with CI_JOB_TOKEN..."
-    git push --force -o ci.skip "http://oauth2:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
-    
-    if [ $? -eq 0 ]; then
-      echo "✅ Helm values committed and pushed to Git"
+    # Check if there are changes to commit
+    if git diff --quiet helm/fastapi-app/values.yaml; then
+      echo "⚠️  No changes to Helm values - skipping commit"
     else
-      echo "⚠️  Git push failed - checking details..."
-      git status
-      exit 1
+      git add helm/fastapi-app/values.yaml
+      git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
+
+Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+Commit: ${CI_COMMIT_SHA}
+Branch: ${CI_COMMIT_BRANCH}
+Pipeline: ${CI_PIPELINE_URL}"
+      
+      # Push back to repository using PROJECT_NEBULA_ACCESS_TOKEN
+      echo "📤 Pushing updated Helm values..."
+      GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+      git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
+      
+      if [ $? -eq 0 ]; then
+        echo "✅ Helm values committed and pushed to Git"
+      else
+        echo "❌ Git push failed - check if PROJECT_NEBULA_ACCESS_TOKEN is set"
+        git status
+        exit 1
+      fi
     fi
     
     # Explain GitOps flow
@@ -495,12 +500,10 @@ release:
     ═══════════════════════════════════════════════════════════
     "
     
-    # -----> NEW: Push tag to repository
+    # -----> Push tag to repository using PROJECT_NEBULA_ACCESS_TOKEN
     # This makes the tag visible in GitLab's Release section
-    # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
-    # GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    # git push -o ci.skip "${GIT_PUSH_URL}" ${RELEASE_VERSION}
-    git push -o ci.skip "http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@192.168.0.190/root/project_nebula.git" ${RELEASE_VERSION}
+    GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+    git push -o ci.skip "${GIT_PUSH_URL}" ${RELEASE_VERSION}
 
     
     echo "✅ Release tag created and pushed: ${RELEASE_VERSION}"
