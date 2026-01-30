@@ -68,7 +68,7 @@ build:
     echo "✅ Image built: ${IMAGE_NAME}:${IMAGE_TAG}"
 
 # ============================================================
-# PUSH — GITLAB CONTAINER REGISTRY
+# PUSH — GITLAB CONTAINER REGISTRY (SOURCE OF TRUTH)
 # ============================================================
 push:
   stage: push
@@ -82,41 +82,46 @@ push:
 
     FULL_IMAGE="${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}"
 
+    echo "🏷 Tagging image"
     docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${FULL_IMAGE}
+
+    echo "📤 Pushing image"
     docker push ${FULL_IMAGE}
 
-    echo "🔍 Verifying image"
+    echo "🔍 Verifying image exists"
     docker pull ${FULL_IMAGE}
 
     echo "✅ IMAGE AVAILABLE → ${FULL_IMAGE}"
 
 # ============================================================
-# UPDATE HELM — GITOPS CORE
+# UPDATE HELM — GITOPS CORE (THIS IS THE KEY)
 # ============================================================
 update-helm:
   stage: update-helm
   script: |
-    echo "🧠 UPDATE HELM VALUES"
+    echo "🧠 UPDATE HELM VALUES (GitOps)"
 
     echo "📄 BEFORE"
     grep -n "repository:\|tag:" ${HELM_VALUES_FILE}
 
+    echo "✏️ Updating repository + tag"
     sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" ${HELM_VALUES_FILE}
     sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" ${HELM_VALUES_FILE}
 
     echo "📄 AFTER"
     grep -n "repository:\|tag:" ${HELM_VALUES_FILE}
 
+    echo "🔍 Git diff (proof)"
     git diff ${HELM_VALUES_FILE}
 
     git add ${HELM_VALUES_FILE}
     git commit -m "ci(gitops): update image to ${IMAGE_TAG} [skip ci]"
     git push origin ${CI_COMMIT_BRANCH}
 
-    echo "✅ HELM UPDATED — ARGOCD WILL SYNC"
+    echo "✅ HELM UPDATED — ARGOCD WILL AUTO-SYNC"
 
 # ============================================================
-# DEPLOY — ENVIRONMENT MARKER (NO KUBECTL!)
+# DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
 # ============================================================
 deploy:
   stage: deploy
@@ -130,12 +135,12 @@ deploy:
     echo "Image       : ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}"
 
     echo "ℹ️ No kubectl here"
-    echo "ℹ️ ArgoCD will reconcile automatically"
+    echo "ℹ️ ArgoCD reconciles from Git"
 
     echo "✅ DEPLOY REGISTERED"
 
 # ============================================================
-# RELEASE — VERSIONED AUDIT TRAIL
+# RELEASE — AUDIT + TRACEABILITY
 # ============================================================
 release:
   stage: release
