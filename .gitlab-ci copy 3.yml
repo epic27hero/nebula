@@ -23,12 +23,10 @@ stages: [build, push, deploy, release]
 # ✅ Easy rollbacks via Git
 # ============================================================================
 
-# -----> VARIABLES - ENHANCED FOR GITLAB REGISTRY
+# -----> VARIABLES - ENHANCED FOR LOCAL REGISTRY
 variables:
-  # OLD: REGISTRY: 192.168.0.113:5000
-  # NEW: Using GitLab Container Registry (via $CI_REGISTRY built-in variable)
-  # $CI_REGISTRY is automatically set to your GitLab's registry URL
-  # This ensures it works from any runner with proper network access
+  # Using local Docker registry on Kubernetes host
+  REGISTRY: "192.168.0.113:5000"
   IMAGE_NAME: "fastapi-demo"
   
   # ============================================================================
@@ -40,13 +38,16 @@ variables:
   # ============================================================================
   
   # Deployment Infrastructure
-  DEPLOY_SERVER: ${DEPLOY_SERVER:-192.168.0.113}
-  DEPLOY_USER: ${DEPLOY_USER:-root}
+  DEPLOY_SERVER: "192.168.0.113"
+  DEPLOY_USER: "root"
   
   # GitLab Instance Information
-  GITLAB_HOST: ${GITLAB_HOST:-192.168.0.190}
-  GITLAB_PORT: ${GITLAB_PORT:-80}
-  GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
+  GITLAB_HOST: "192.168.0.190"
+  GITLAB_PORT: "80"
+  GITLAB_PROTOCOL: "http"
+  
+  # Release Version - generated from pipeline ID and commit SHA
+  RELEASE_VERSION: "v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
   
   # ============================================================================
   # SERVICE ENDPOINTS - LOADED FROM CONFIG FILE
@@ -82,8 +83,8 @@ workflow:
       when: never
     
     # Skip if author is CI itself (prevents loops)
-    - if: $CI_COMMIT_AUTHOR == "GitLab CI/CD"
-      when: never
+    # - if: $CI_COMMIT_AUTHOR == "GitLab CI/CD"
+    #   when: never
     
     # Skip for tag pushes (releases don't need rebuilds)
     - if: $CI_COMMIT_TAG
@@ -178,18 +179,14 @@ build:
     docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
     echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     
-    # -----> NEW: Tag for GitLab Container Registry
-    echo "📦 Tagging for GitLab Container Registry..."
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    # -----> Tag for local registry
+    echo "📦 Tagging for local Docker Registry..."
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     
-    # -----> LEGACY: Also tag for old registry (can remove later)
-    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
-    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    
-    echo "✅ Image tagged for GitLab Container Registry"
-    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
-    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "✅ Image tagged for local registry"
+    echo "   - ${REGISTRY}/${IMAGE_NAME}:latest"
+    echo "   - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
 # ============================================================================
 # PUSH STAGE: Upload to GitLab Container Registry
@@ -203,13 +200,13 @@ push:
     echo "🔑 Logging in to GitLab Container Registry..."
     echo "${CI_REGISTRY_PASSWORD}" | docker login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
     
-    echo "📤 Pushing image to GitLab registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
+    echo "📤 Pushing image to local registry: ${REGISTRY}/${IMAGE_NAME}:latest"
     
-    # ⭐ NEW: Push with retry logic (3 attempts)
+    # ⭐ Push with retry logic (3 attempts)
     for i in {1..3}; do
       echo "Attempt $i/3..."
-      if docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest && \
-         docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
+      if docker push ${REGISTRY}/${IMAGE_NAME}:latest && \
+         docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
         echo "✅ Push successful!"
         break
       else
@@ -222,11 +219,11 @@ push:
       fi
     done
     
-    # ⭐ NEW: Verify images exist in registry
+    # ⭐ Verify images exist in registry
     echo ""
     echo "🔍 Verifying pushed images..."
     
-    if docker pull ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
+    if docker pull ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
       echo "✅ Image verified in registry"
     else
       echo "❌ Image verification failed - may be corrupted"
@@ -291,51 +288,67 @@ deploy:
     echo "🚀 DEPLOYMENT PHASE (GitOps - Pure ArgoCD)"
     echo "==============================================="
     echo ""
-    echo "✅ Image pushed to GitLab Container Registry"
-    echo "   Registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "✅ Image pushed to local Docker Registry"
+    echo "   Registry: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     echo ""
     
-    # -----> NEW: Update Helm chart values with new image tag
+    # -----> Update Helm chart values with new image tag
     echo "📝 Updating Helm chart values with new image tag..."
     
     # Update helm/fastapi-app/values.yaml with new image tag
-    sed -i "s|image:.*fastapi-demo.*|image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
+    sed -i "s|repository:.*|repository: ${REGISTRY}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
     sed -i "s|tag:.*|tag: ${CI_COMMIT_SHORT_SHA}|g" helm/fastapi-app/values.yaml
     
     echo "✅ Updated helm/fastapi-app/values.yaml"
+    echo "   Repository: ${REGISTRY}/${IMAGE_NAME}"
+    echo "   Tag: ${CI_COMMIT_SHORT_SHA}"
     
-    # -----> NEW: Commit and push updated Helm values to Git
+    # -----> Commit and push updated Helm values to Git
     echo ""
     echo "📤 Committing Helm values update to Git..."
 
     git config user.email "gitlab-ci@project-nebula.local"
     git config user.name "GitLab CI/CD"
-    git add helm/fastapi-app/values.yaml
-    git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
-
-    Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    Commit: ${CI_COMMIT_SHA}
-    Branch: ${CI_COMMIT_BRANCH}
-    Pipeline: ${CI_PIPELINE_URL}"
     
-    # Push back to repository
-    # Note: Using HEAD:branch syntax because runner is in detached HEAD state
-    # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
-    # GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    # git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
-    git push -o ci.skip "http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
+    # Check if there are changes to commit
+    if git diff --quiet helm/fastapi-app/values.yaml; then
+      echo "⚠️  No changes to Helm values - skipping commit"
+    else
+      git add helm/fastapi-app/values.yaml
+      git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
 
-
-
-
-    echo "✅ Helm values committed and pushed to Git"
+      Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+      Commit: ${CI_COMMIT_SHA}
+      Branch: ${CI_COMMIT_BRANCH}
+      Pipeline: ${CI_PIPELINE_URL}"
+      
+      # Try to push with token if available
+      if [ -n "${PROJECT_NEBULA_ACCESS_TOKEN}" ]; then
+        GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+        git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
+        if [ $? -eq 0 ]; then
+          echo "✅ Helm values committed and pushed to Git via token"
+        else
+          echo "⚠️  Git push failed with token - values updated locally but not pushed"
+          echo "   Values will be synced when you manually push or create a deploy commit"
+        fi
+      else
+        echo "⚠️  WARNING: PROJECT_NEBULA_ACCESS_TOKEN not set"
+        echo "   Helm values have been updated but NOT pushed to Git"
+        echo "   To enable auto-push, add PROJECT_NEBULA_ACCESS_TOKEN to GitLab CI/CD Variables"
+        echo "   For now, manually commit: git add helm/fastapi-app/values.yaml && git commit && git push"
+        echo ""
+        echo "   Updated values:"
+        cat helm/fastapi-app/values.yaml | grep -A 2 "image:"
+      fi
+    fi
+    
+    # Explain GitOps flow
     echo ""
-    
-    # -----> NEW: Explain GitOps flow
     echo "🔄 GitOps Flow:"
-    echo "   1. ✅ Image built and pushed to GitLab Registry"
+    echo "   1. ✅ Image built and pushed to local Docker Registry (192.168.0.113:5000)"
     echo "   2. ✅ Helm values updated with new image tag"
-    echo "   3. ✅ Changes committed to Git"
+    echo "   3. ✅ Changes committed to Git (192.168.0.190)"
     echo "   4. ⏳ ArgoCD will auto-sync within 3 minutes"
     echo "   5. ⏳ K3s cluster will receive new image"
     echo ""
@@ -345,12 +358,12 @@ deploy:
     echo "   • Prometheus: ${PROMETHEUS_URL}"
     echo "   • Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})"
     echo "   • Kubernetes API: ${KUBE_API_SERVER}"
-    echo "   • GitLab Registry: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry"
-    
+    echo "   • Docker Registry: 192.168.0.113:5000"
 
   only:
     - master
     - feature/gitlab-gitops-enhancements
+  
   retry:
     max: 2
     when:
@@ -407,110 +420,33 @@ release:
     echo "=================================================="
     echo ""
     
-    # Create release version from pipeline ID and commit SHA
-    # Format: v{PIPELINE_ID}-{COMMIT_SHA}
-    # Example: v12345-a1b2c3d4
-    RELEASE_VERSION="v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
-    RELEASE_DATE=$(date '+%Y-%m-%d %H:%M:%S')
-    
     echo "📝 Creating release: ${RELEASE_VERSION}"
     echo ""
     
-    # -----> NEW: Create annotated Git tag (not lightweight)
+    # -----> Create annotated Git tag (not lightweight)
     # Annotated tags are preferred for releases
-    # They include: author, date, message, and can be signed
-    git tag -a ${RELEASE_VERSION} -m "🚀 Release: ${RELEASE_VERSION}
+    git tag -a ${RELEASE_VERSION} -m "🚀 Release ${RELEASE_VERSION} - $(date)"
     
-    ═══════════════════════════════════════════════════════════
-    DEPLOYMENT INFORMATION
-    ═══════════════════════════════════════════════════════════
+    # -----> Try to push tag if token is available
+    if [ -n "${PROJECT_NEBULA_ACCESS_TOKEN}" ]; then
+      GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+      git push -o ci.skip "${GIT_PUSH_URL}" ${RELEASE_VERSION}
+      if [ $? -eq 0 ]; then
+        echo "✅ Release tag created and pushed: ${RELEASE_VERSION}"
+        echo ""
+        echo "📊 Release Available At:"
+        echo "   GitLab UI: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/-/releases/${RELEASE_VERSION}"
+      else
+        echo "⚠️  Tag created locally but push failed"
+      fi
+    else
+      echo "⚠️  WARNING: PROJECT_NEBULA_ACCESS_TOKEN not set"
+      echo "   Release tag created locally: ${RELEASE_VERSION}"
+      echo "   To push to GitLab, add PROJECT_NEBULA_ACCESS_TOKEN to CI/CD Variables"
+    fi
     
-    Pipeline URL: ${CI_PIPELINE_URL}
-    Commit SHA: ${CI_COMMIT_SHA}
-    Branch: ${CI_COMMIT_BRANCH}
-    Author: ${GITLAB_USER_LOGIN}
-    Date: ${RELEASE_DATE}
-    
-    ═══════════════════════════════════════════════════════════
-    IMAGE DETAILS
-    ═══════════════════════════════════════════════════════════
-    
-    Docker Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    
-    Container Registry Link:
-    ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry
-    
-    ═══════════════════════════════════════════════════════════
-    DEPLOYMENT ENDPOINTS - FROM SERVICE CONFIG
-    ═══════════════════════════════════════════════════════════
-    
-    🔵 FastAPI Application
-      ${FASTAPI_URL}
-      - API: ${FASTAPI_URL}
-      - Docs: ${FASTAPI_DOCS_URL}
-      - Health: ${FASTAPI_HEALTH_URL}
-      - Metrics: ${FASTAPI_METRICS_URL}
-    
-    📊 Monitoring Services
-      - Prometheus: ${PROMETHEUS_URL}
-      - Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})
-    
-    ⚙️  Management
-      - ArgoCD: ${ARGOCD_URL}
-    
-    ☸️  Kubernetes
-      - API Server: ${KUBE_API_SERVER}
-    
-    ═══════════════════════════════════════════════════════════
-    SERVICE CONFIGURATION
-    ═══════════════════════════════════════════════════════════
-    
-    All service endpoints are managed in: scripts/service-endpoints.conf
-    
-    To update endpoints after deployment:
-      ./scripts/detect-service-ips.sh --update    (auto-detect from cluster)
-      ./scripts/update-service-ips.sh              (interactive mode)
-      ./scripts/update-service-ips.sh --reset      (reset to defaults)
-    
-    ═══════════════════════════════════════════════════════════
-    KUBERNETES INFO
-    ═══════════════════════════════════════════════════════════
-    
-    Namespace: production
-    Deployment: fastapi-app
-    Replicas: 3
-    
-    Check deployment status:
-    kubectl get deployment fastapi-app -n production
-    kubectl get pods -n production
-    
-    ═══════════════════════════════════════════════════════════
-    HOW TO ROLLBACK
-    ═══════════════════════════════════════════════════════════
-    
-    To rollback to this version:
-    1. Open ArgoCD: http://192.168.0.202
-    2. Go to fastapi-production app
-    3. Click 'Sync' and select this commit SHA
-    4. Or manually edit manifests/deployment.yaml with this image tag
-    
-    ═══════════════════════════════════════════════════════════
-    "
-    
-    # -----> NEW: Push tag to repository
-    # This makes the tag visible in GitLab's Release section
-    # Using CI_JOB_TOKEN for authentication (built-in GitLab token)
-    # GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    # git push -o ci.skip "${GIT_PUSH_URL}" ${RELEASE_VERSION}
-    git push -o ci.skip "http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@192.168.0.190/root/project_nebula.git" ${RELEASE_VERSION}
-
-    
-    echo "✅ Release tag created and pushed: ${RELEASE_VERSION}"
     echo ""
-    echo "📊 Release Available At:"
-    echo "   GitLab UI: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/-/releases/${RELEASE_VERSION}"
-    echo ""
-    echo "✅ Check 'Deploy → Releases' section in GitLab to view all releases"
+    echo "✅ Release phase complete"
   
   # -----> NEW: Only run on master branch after successful deploy
   # This ensures only stable deployments get tagged
