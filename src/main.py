@@ -15,7 +15,7 @@ from kubernetes.client.exceptions import ApiException
 # App metadata
 # -----------------------------------------------------------------------------
 APP_NAME = "fastapi-demo"
-APP_VERSION = os.getenv("APP_VERSION", "v2.0.1")
+APP_VERSION = os.getenv("APP_VERSION", "v2.0.2")
 BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
 START_TIME = time.time()
 
@@ -185,4 +185,4 @@ def metrics():
     return Response(
         generate_latest(),
         media_type="text/plain"
-    )
+    )# Test trigger - Fri Jan 30 04:51:41 PM IST 2026
