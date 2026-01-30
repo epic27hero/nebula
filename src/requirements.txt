@@ -2,4 +2,3 @@ fastapi
 uvicorn[standard]
 prometheus-client
 psutil
-kubernetes
