@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: 192.168.0.113:5000/fastapi-demo
-  tag: latest
+  tag: "put_anything_here"
 
 service:
   port: 80
