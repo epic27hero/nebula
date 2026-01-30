@@ -9,10 +9,8 @@ spec:
     repoURL: http://192.168.0.190/root/project_nebula.git
     path: helm/fastapi-app
     targetRevision: master   # 🔥 FIXED
-    helm:
-      values: |
-        image:
-          tag: latest
+    # ✅ REMOVED: helm.values override that was forcing tag: latest
+    # This allows the CI/CD pipeline to control the image tag via values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: production
