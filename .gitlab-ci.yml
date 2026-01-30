@@ -309,16 +309,16 @@ deploy:
     git add helm/fastapi-app/values.yaml
     git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
 
-    Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     Commit: ${CI_COMMIT_SHA}
     Branch: ${CI_COMMIT_BRANCH}
     Pipeline: ${CI_PIPELINE_URL}"
     
-    # Push back to repository
+    # Push back to repository using CI_JOB_TOKEN for authentication
     # Note: Using HEAD:branch syntax because runner is in detached HEAD state
-    # Using --force to handle cases where branch was updated (e.g., force push)
-    # Using SSH key from runner's ~/.ssh directory
-    git push --force -o ci.skip origin HEAD:${CI_COMMIT_BRANCH}
+    # CI_JOB_TOKEN is a built-in GitLab token that allows the runner to push
+    echo "📤 Pushing updated Helm values with CI_JOB_TOKEN..."
+    git push --force -o ci.skip "http://oauth2:${CI_JOB_TOKEN}@192.168.0.190/root/project_nebula.git" HEAD:${CI_COMMIT_BRANCH}
     
     if [ $? -eq 0 ]; then
       echo "✅ Helm values committed and pushed to Git"
@@ -327,13 +327,13 @@ deploy:
       git status
       exit 1
     fi
-    echo ""
     
-    # -----> NEW: Explain GitOps flow
+    # Explain GitOps flow
+    echo ""
     echo "🔄 GitOps Flow:"
-    echo "   1. ✅ Image built and pushed to GitLab Registry"
+    echo "   1. ✅ Image built and pushed to local Docker Registry (192.168.0.113:5000)"
     echo "   2. ✅ Helm values updated with new image tag"
-    echo "   3. ✅ Changes committed to Git"
+    echo "   3. ✅ Changes committed to Git (192.168.0.190)"
     echo "   4. ⏳ ArgoCD will auto-sync within 3 minutes"
     echo "   5. ⏳ K3s cluster will receive new image"
     echo ""
@@ -343,7 +343,7 @@ deploy:
     echo "   • Prometheus: ${PROMETHEUS_URL}"
     echo "   • Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})"
     echo "   • Kubernetes API: ${KUBE_API_SERVER}"
-    echo "   • GitLab Registry: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry"
+    echo "   • Docker Registry: 192.168.0.113:5000"
     
 
   only:
