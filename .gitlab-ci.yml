@@ -168,7 +168,8 @@ deploy:
     git add helm/fastapi-app/values.yaml
     git commit -m "🚀 Deploy ${CI_COMMIT_SHORT_SHA} [skip ci]"
 
-    GIT_PUSH_URL="http://${CI_DEPLOY_USER}:${CI_DEPLOY_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}/${CI_PROJECT_PATH}.git"
+    # GIT_PUSH_URL="http://${CI_DEPLOY_USER}:${CI_DEPLOY_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
     git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
 
     echo "✅ Helm values updated — ArgoCD will sync"
