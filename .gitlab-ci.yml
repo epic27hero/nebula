@@ -84,7 +84,7 @@ before_script: |
     User git
     IdentityFile ~/.ssh/gitlab_ci
     StrictHostKeyChecking no
-EOF
+  EOF
 
 # =============================================================================
 # BUILD
