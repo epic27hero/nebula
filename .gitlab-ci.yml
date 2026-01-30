@@ -168,12 +168,16 @@ deploy:
 release:
   stage: release
   script: |
-    echo "🏷️ RELEASE STAGE"
+    set -e
 
-    RELEASE_TAG="v${CI_PIPELINE_ID}-${IMAGE_TAG}"
+    echo "🏷️ RELEASE STAGE (Nebula Tag)"
 
-    git tag -a ${RELEASE_TAG} -m "
-    Release: ${RELEASE_TAG}
+    NEBULA_TAG="nebula-v${CI_PIPELINE_ID}-${IMAGE_TAG}"
+
+    echo "📌 Creating tag: ${NEBULA_TAG}"
+
+    git tag -a "${NEBULA_TAG}" -m "
+    Nebula Release: ${NEBULA_TAG}
 
     Image:
       ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -181,10 +185,16 @@ release:
     Branch:
       ${CI_COMMIT_BRANCH}
 
+    Commit:
+      ${CI_COMMIT_SHA}
+
     Pipeline:
       ${CI_PIPELINE_URL}
     "
 
-    git push origin ${RELEASE_TAG}
+    echo "🔐 Using PAT-based push for tag"
+    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
 
-    echo "✅ RELEASE CREATED → ${RELEASE_TAG}"
+    git push "${GIT_PUSH_URL}" "${NEBULA_TAG}"
+
+    echo "✅ NEBULA RELEASE CREATED → ${NEBULA_TAG}"
