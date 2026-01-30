@@ -7,8 +7,8 @@ import psutil
 from prometheus_client import Counter, Histogram, generate_latest
 
 # Kubernetes client
-from kubernetes import client, config
-from kubernetes.client.exceptions import ApiException
+# from kubernetes import client, config
+# from kubernetes.client.exceptions import ApiException
 
 
 # -----------------------------------------------------------------------------
@@ -60,12 +60,12 @@ async def metrics_middleware(request, call_next):
 # -----------------------------------------------------------------------------
 # Kubernetes client initialization
 # -----------------------------------------------------------------------------
-def get_k8s_client():
-    try:
-        config.load_incluster_config()
-        return client.CoreV1Api(), None
-    except Exception as e:
-        return None, str(e)
+# def get_k8s_client():
+#     try:
+#         config.load_incluster_config()
+#         return client.CoreV1Api(), None
+#     except Exception as e:
+#         return None, str(e)
 
 
 # -----------------------------------------------------------------------------
@@ -78,7 +78,7 @@ def get_resource_usage():
         "memory_mb": round(process.memory_info().rss / 1024 / 1024, 2)
     }
 
-
+""" 
 def get_cluster_info():
     v1, err = get_k8s_client()
     if err:
@@ -117,7 +117,7 @@ def get_cluster_info():
             "error": "RBAC permission missing",
             "details": e.reason
         }
-
+ """
 
 # -----------------------------------------------------------------------------
 # Routes
