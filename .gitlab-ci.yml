@@ -98,15 +98,10 @@ push:
 # ============================================================
 update-helm:
   stage: update-helm
-  image: alpine:latest
-  variables:
-    GIT_STRATEGY: fetch
   script: |
     set -e
 
     echo "🧠 UPDATE HELM VALUES (GitOps)"
-
-    apk add --no-cache git
 
     echo "📌 Using branch: ${CI_COMMIT_BRANCH}"
 
@@ -117,6 +112,7 @@ update-helm:
     GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
     git remote set-url origin "${GIT_PUSH_URL}"
 
+    echo "🔁 Attaching to branch (exit detached HEAD)"
     git checkout -B "${CI_COMMIT_BRANCH}"
 
     echo "📄 BEFORE"
@@ -145,6 +141,7 @@ update-helm:
     git push origin "${CI_COMMIT_BRANCH}"
 
     echo "✅ HELM UPDATED — ARGOCD WILL AUTO-SYNC"
+
 
 # ============================================================
 # DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
