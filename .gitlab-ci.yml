@@ -220,3 +220,4 @@ release:
   only:
     - master
     - feature/gitlab-gitops-enhancements
+
