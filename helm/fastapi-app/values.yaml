@@ -5,8 +5,10 @@ image:
   tag: ""
 
 service:
+  type: LoadBalancer
   port: 80
   targetPort: 8000
+  loadBalancerIP: 192.168.0.203
 
 env:
   - name: ENV
@@ -25,8 +27,8 @@ env:
     valueFrom:
       fieldRef:
         fieldPath: spec.nodeName
-  
+
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/port: "8000"
-  prometheus.io/path: "/metrics"  
+  prometheus.io/path: "/metrics"
