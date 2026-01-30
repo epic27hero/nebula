@@ -23,12 +23,10 @@ stages: [build, push, deploy, release]
 # ✅ Easy rollbacks via Git
 # ============================================================================
 
-# -----> VARIABLES - ENHANCED FOR GITLAB REGISTRY
+# -----> VARIABLES - ENHANCED FOR LOCAL REGISTRY
 variables:
-  # OLD: REGISTRY: 192.168.0.113:5000
-  # NEW: Using GitLab Container Registry (via $CI_REGISTRY built-in variable)
-  # $CI_REGISTRY is automatically set to your GitLab's registry URL
-  # This ensures it works from any runner with proper network access
+  # Using local Docker registry on Kubernetes host
+  REGISTRY: "192.168.0.113:5000"
   IMAGE_NAME: "fastapi-demo"
   
   # ============================================================================
@@ -178,18 +176,14 @@ build:
     docker build --no-cache -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
     echo "✅ Build successful: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     
-    # -----> NEW: Tag for GitLab Container Registry
-    echo "📦 Tagging for GitLab Container Registry..."
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
-    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+    # -----> Tag for local registry
+    echo "📦 Tagging for local Docker Registry..."
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
     
-    # -----> LEGACY: Also tag for old registry (can remove later)
-    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:latest
-    # docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    
-    echo "✅ Image tagged for GitLab Container Registry"
-    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
-    echo "   - ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "✅ Image tagged for local registry"
+    echo "   - ${REGISTRY}/${IMAGE_NAME}:latest"
+    echo "   - ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
 
 # ============================================================================
 # PUSH STAGE: Upload to GitLab Container Registry
@@ -203,13 +197,13 @@ push:
     echo "🔑 Logging in to GitLab Container Registry..."
     echo "${CI_REGISTRY_PASSWORD}" | docker login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
     
-    echo "📤 Pushing image to GitLab registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest"
+    echo "📤 Pushing image to local registry: ${REGISTRY}/${IMAGE_NAME}:latest"
     
-    # ⭐ NEW: Push with retry logic (3 attempts)
+    # ⭐ Push with retry logic (3 attempts)
     for i in {1..3}; do
       echo "Attempt $i/3..."
-      if docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest && \
-         docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
+      if docker push ${REGISTRY}/${IMAGE_NAME}:latest && \
+         docker push ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
         echo "✅ Push successful!"
         break
       else
@@ -222,11 +216,11 @@ push:
       fi
     done
     
-    # ⭐ NEW: Verify images exist in registry
+    # ⭐ Verify images exist in registry
     echo ""
     echo "🔍 Verifying pushed images..."
     
-    if docker pull ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
+    if docker pull ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
       echo "✅ Image verified in registry"
     else
       echo "❌ Image verification failed - may be corrupted"
@@ -291,20 +285,19 @@ deploy:
     echo "🚀 DEPLOYMENT PHASE (GitOps - Pure ArgoCD)"
     echo "==============================================="
     echo ""
-    echo "✅ Image pushed to GitLab Container Registry"
-    echo "   Registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    echo "✅ Image pushed to local Docker Registry"
+    echo "   Registry: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     echo ""
     
-    # -----> NEW: Update Helm chart values with new image tag
+    # -----> Update Helm chart values with new image tag
     echo "📝 Updating Helm chart values with new image tag..."
     
     # Update helm/fastapi-app/values.yaml with new image tag
-    # Fix: Repository is on its own line, so we match with proper indentation
-    sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
+    sed -i "s|repository:.*|repository: ${REGISTRY}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
     sed -i "s|tag:.*|tag: ${CI_COMMIT_SHORT_SHA}|g" helm/fastapi-app/values.yaml
     
     echo "✅ Updated helm/fastapi-app/values.yaml"
-    echo "   Repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}"
+    echo "   Repository: ${REGISTRY}/${IMAGE_NAME}"
     echo "   Tag: ${CI_COMMIT_SHORT_SHA}"
     
     # -----> NEW: Commit and push updated Helm values to Git
