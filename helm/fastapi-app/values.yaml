@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: 192.168.0.113:5000/fastapi-demo
-  tag: ""
+  tag: 03342d72
 
 service:
   port: 80
