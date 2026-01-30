@@ -1,8 +1,8 @@
 replicaCount: 3
 
 image:
-  repository: "${CI_REGISTRY}/${CI_PROJECT_PATH}/fastapi-demo"
-  tag: ""  # Empty - will be set dynamically by CI pipeline during deployment
+  repository: 192.168.0.190:5005/root/project_nebula/fastapi-demo
+  tag: "d9ea5c2b"
 
 service:
   port: 80
