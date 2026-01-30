@@ -314,20 +314,25 @@ deploy:
       git add helm/fastapi-app/values.yaml
       git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
 
-Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-Commit: ${CI_COMMIT_SHA}
-Branch: ${CI_COMMIT_BRANCH}
-Pipeline: ${CI_PIPELINE_URL}"
+      Image: ${REGISTRY}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+      Commit: ${CI_COMMIT_SHA}
+      Branch: ${CI_COMMIT_BRANCH}
+      Pipeline: ${CI_PIPELINE_URL}"
       
-      # Push back to repository using PROJECT_NEBULA_ACCESS_TOKEN
-      echo "📤 Pushing updated Helm values..."
+      if [ -z "${PROJECT_NEBULA_ACCESS_TOKEN}" ]; then
+        echo "❌ ERROR: PROJECT_NEBULA_ACCESS_TOKEN is not set!"
+        echo "   Please add this variable in GitLab: Settings → CI/CD → Variables"
+        exit 1
+      fi
+      
       GIT_PUSH_URL="${GITLAB_PROTOCOL}://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
       git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
       
       if [ $? -eq 0 ]; then
         echo "✅ Helm values committed and pushed to Git"
       else
-        echo "❌ Git push failed - check if PROJECT_NEBULA_ACCESS_TOKEN is set"
+        echo "❌ Git push failed"
+        echo "   Checking git status..."
         git status
         exit 1
       fi
@@ -349,11 +354,11 @@ Pipeline: ${CI_PIPELINE_URL}"
     echo "   • Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})"
     echo "   • Kubernetes API: ${KUBE_API_SERVER}"
     echo "   • Docker Registry: 192.168.0.113:5000"
-    
 
   only:
     - master
     - feature/gitlab-gitops-enhancements
+  
   retry:
     max: 2
     when:
@@ -410,95 +415,12 @@ release:
     echo "=================================================="
     echo ""
     
-    # Create release version from pipeline ID and commit SHA
-    # Format: v{PIPELINE_ID}-{COMMIT_SHA}
-    # Example: v12345-a1b2c3d4
-    RELEASE_VERSION="v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
-    RELEASE_DATE=$(date '+%Y-%m-%d %H:%M:%S')
-    
     echo "📝 Creating release: ${RELEASE_VERSION}"
     echo ""
     
-    # -----> NEW: Create annotated Git tag (not lightweight)
+    # -----> Create annotated Git tag (not lightweight)
     # Annotated tags are preferred for releases
-    # They include: author, date, message, and can be signed
-    git tag -a ${RELEASE_VERSION} -m "🚀 Release: ${RELEASE_VERSION}
-    
-    ═══════════════════════════════════════════════════════════
-    DEPLOYMENT INFORMATION
-    ═══════════════════════════════════════════════════════════
-    
-    Pipeline URL: ${CI_PIPELINE_URL}
-    Commit SHA: ${CI_COMMIT_SHA}
-    Branch: ${CI_COMMIT_BRANCH}
-    Author: ${GITLAB_USER_LOGIN}
-    Date: ${RELEASE_DATE}
-    
-    ═══════════════════════════════════════════════════════════
-    IMAGE DETAILS
-    ═══════════════════════════════════════════════════════════
-    
-    Docker Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    
-    Container Registry Link:
-    ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry
-    
-    ═══════════════════════════════════════════════════════════
-    DEPLOYMENT ENDPOINTS - FROM SERVICE CONFIG
-    ═══════════════════════════════════════════════════════════
-    
-    🔵 FastAPI Application
-      ${FASTAPI_URL}
-      - API: ${FASTAPI_URL}
-      - Docs: ${FASTAPI_DOCS_URL}
-      - Health: ${FASTAPI_HEALTH_URL}
-      - Metrics: ${FASTAPI_METRICS_URL}
-    
-    📊 Monitoring Services
-      - Prometheus: ${PROMETHEUS_URL}
-      - Grafana: ${GRAFANA_URL} (${GRAFANA_CREDENTIALS})
-    
-    ⚙️  Management
-      - ArgoCD: ${ARGOCD_URL}
-    
-    ☸️  Kubernetes
-      - API Server: ${KUBE_API_SERVER}
-    
-    ═══════════════════════════════════════════════════════════
-    SERVICE CONFIGURATION
-    ═══════════════════════════════════════════════════════════
-    
-    All service endpoints are managed in: scripts/service-endpoints.conf
-    
-    To update endpoints after deployment:
-      ./scripts/detect-service-ips.sh --update    (auto-detect from cluster)
-      ./scripts/update-service-ips.sh              (interactive mode)
-      ./scripts/update-service-ips.sh --reset      (reset to defaults)
-    
-    ═══════════════════════════════════════════════════════════
-    KUBERNETES INFO
-    ═══════════════════════════════════════════════════════════
-    
-    Namespace: production
-    Deployment: fastapi-app
-    Replicas: 3
-    
-    Check deployment status:
-    kubectl get deployment fastapi-app -n production
-    kubectl get pods -n production
-    
-    ═══════════════════════════════════════════════════════════
-    HOW TO ROLLBACK
-    ═══════════════════════════════════════════════════════════
-    
-    To rollback to this version:
-    1. Open ArgoCD: http://192.168.0.202
-    2. Go to fastapi-production app
-    3. Click 'Sync' and select this commit SHA
-    4. Or manually edit manifests/deployment.yaml with this image tag
-    
-    ═══════════════════════════════════════════════════════════
-    "
+    git tag -a ${RELEASE_VERSION} -m "🚀 Release ${RELEASE_VERSION} - $(date)"
     
     # -----> Push tag to repository using PROJECT_NEBULA_ACCESS_TOKEN
     # This makes the tag visible in GitLab's Release section
