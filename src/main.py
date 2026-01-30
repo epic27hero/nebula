@@ -1,52 +1,188 @@
-from fastapi import FastAPI
-import os, socket
-from prometheus_client import Counter, generate_latest
-from fastapi import Response
+from fastapi import FastAPI, Response
+import os
+import socket
+import time
+import psutil
 
-app = FastAPI(title="FastAPI Demo")
+from prometheus_client import Counter, Histogram, generate_latest
 
-# Prometheus metrics
+# Kubernetes client
+from kubernetes import client, config
+from kubernetes.client.exceptions import ApiException
+
+
+# -----------------------------------------------------------------------------
+# App metadata
+# -----------------------------------------------------------------------------
+APP_NAME = "fastapi-demo"
+APP_VERSION = os.getenv("APP_VERSION", "v1.0.4")
+BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
+START_TIME = time.time()
+
+app = FastAPI(title="FastAPI Kubernetes Observability Demo")
+
+
+# -----------------------------------------------------------------------------
+# Prometheus Metrics
+# -----------------------------------------------------------------------------
 REQUEST_COUNT = Counter(
     "http_requests_total",
-    "Total HTTP requests"
+    "Total HTTP requests",
+    ["method", "path", "status"]
+)
+
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latency",
+    ["path"]
 )
 
 
 @app.middleware("http")
-async def count_requests(request, call_next):
-    REQUEST_COUNT.inc()
+async def metrics_middleware(request, call_next):
+    start = time.time()
     response = await call_next(request)
+    duration = time.time() - start
+
+    REQUEST_COUNT.labels(
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code
+    ).inc()
+
+    REQUEST_LATENCY.labels(
+        path=request.url.path
+    ).observe(duration)
+
     return response
 
+
+# -----------------------------------------------------------------------------
+# Kubernetes client initialization
+# -----------------------------------------------------------------------------
+def get_k8s_client():
+    try:
+        config.load_incluster_config()
+        return client.CoreV1Api(), None
+    except Exception as e:
+        return None, str(e)
+
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+def get_resource_usage():
+    process = psutil.Process()
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "memory_mb": round(process.memory_info().rss / 1024 / 1024, 2)
+    }
+
+
+def get_cluster_info():
+    v1, err = get_k8s_client()
+    if err:
+        return {"error": "Kubernetes client not available", "details": err}
+
+    result = {
+        "total_pods": 0,
+        "total_namespaces": 0,
+        "all_pod_ips": [],
+        "namespaces": {}
+    }
+
+    try:
+        namespaces = v1.list_namespace()
+        result["total_namespaces"] = len(namespaces.items)
+
+        for ns in namespaces.items:
+            ns_name = ns.metadata.name
+            result["namespaces"][ns_name] = []
+
+            pods = v1.list_namespaced_pod(ns_name)
+            for pod in pods.items:
+                if pod.status.pod_ip:
+                    result["all_pod_ips"].append(pod.status.pod_ip)
+                    result["namespaces"][ns_name].append({
+                        "pod_name": pod.metadata.name,
+                        "pod_ip": pod.status.pod_ip,
+                        "node_name": pod.spec.node_name
+                    })
+
+        result["total_pods"] = len(result["all_pod_ips"])
+        return result
+
+    except ApiException as e:
+        return {
+            "error": "RBAC permission missing",
+            "details": e.reason
+        }
+
+
+# -----------------------------------------------------------------------------
+# Routes
+# -----------------------------------------------------------------------------
 @app.get("/")
 def root():
-    # Get hostname
     hostname = socket.gethostname()
-    
-    # Pod and Node details from Kubernetes environment variables
-    pod_ip = os.getenv("POD_IP", "unknown")
-    node_ip = os.getenv("NODE_IP", "unknown")
-    node_name = os.getenv("NODE_NAME", "unknown")
-    
+
     return {
         "message": "FastAPI running on Kubernetes",
-        "env": os.getenv("ENV", "unknown"),
-        
-        # Pod details
-        "pod_name": hostname,
-        "pod_ip": pod_ip,
-        
-        # Node / Server details
-        "node_name": node_name,
-        "node_ip": node_ip,
-        "server_ip": node_ip,
-        "version": "v1.0.3"
+
+        "environment": os.getenv("ENV", "unknown"),
+
+        "app": {
+            "name": APP_NAME,
+            "version": APP_VERSION,
+            "build_time": BUILD_TIME,
+            "uptime_seconds": int(time.time() - START_TIME)
+        },
+
+        "pod": {
+            "name": hostname,
+            "ip": os.getenv("POD_IP", "unknown"),
+            "namespace": os.getenv("POD_NAMESPACE", "unknown"),
+            "service_account": os.getenv("SERVICE_ACCOUNT", "unknown")
+        },
+
+        "node": {
+            "name": os.getenv("NODE_NAME", "unknown"),
+            "ip": os.getenv("NODE_IP", "unknown")
+        },
+
+        "resources": get_resource_usage()
     }
+
+
+# @app.get("/cluster")
+# def cluster_details():
+#     """
+#     Requires RBAC:
+#       - list namespaces
+#       - list pods
+#     """
+#     return get_cluster_info()
+
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "alive"}
+
+
+@app.get("/ready")
+def readiness():
+    return {
+        "status": "ready",
+        "checks": {
+            "kubernetes_api": "ok",
+            "metrics": "ok"
+        }
+    }
+
 
 @app.get("/metrics")
 def metrics():
-    return Response(generate_latest(), media_type="text/plain")
+    return Response(
+        generate_latest(),
+        media_type="text/plain"
+    )
