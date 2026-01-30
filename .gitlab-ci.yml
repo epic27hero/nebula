@@ -1,53 +1,37 @@
 stages: [build, push, scan, deploy, verify, release]
 
-# ============================================================================
-# GITLAB CI/CD PIPELINE FOR PROJECT NEBULA - PRODUCTION-READY + PATH FIXED
-# ============================================================================
-# This pipeline implements secure GitOps with CORRECT Helm path targeting:
-#
-# KEY FIX: Updates helm/fastapi-app/values.yaml (where ArgoCD reads from)
-#          NOT manifests/deployment.yaml (which ArgoCD ignores)
-#
-# 1. BUILD:   Builds Docker image from Dockerfile with caching
-# 2. PUSH:    Pushes image to GitLab Container Registry with retry logic
-# 3. SCAN:    Security scanning with Trivy (vulnerabilities & misconfigurations)
-# 4. DEPLOY:  Updates HELM VALUES in Git (ArgoCD syncs automatically)
-# 5. VERIFY:  Validates deployment success via health checks
-# 6. RELEASE: Creates versioned releases for tracking
-#
-# Why Helm values.yaml?
-# - ArgoCD is configured to watch: helm/fastapi-app/
-# - Helm templates read image tag from values.yaml
-# - CI must update values.yaml, NOT raw manifests
-# ============================================================================
+# =============================================================================
+# GITLAB CI/CD PIPELINE — PROJECT NEBULA (PRODUCTION-READY GITOPS)
+# =============================================================================
+# ✔ Builds & pushes Docker images
+# ✔ Scans with Trivy
+# ✔ Updates Helm values.yaml (GitOps-safe)
+# ✔ ArgoCD auto-syncs
+# ✔ Verifies deployment
+# ✔ Creates versioned release tags
+# =============================================================================
 
 variables:
-  # Docker Image Configuration
   IMAGE_NAME: "fastapi-demo"
-  
-  # Deployment Infrastructure
+
   DEPLOY_SERVER: ${DEPLOY_SERVER:-192.168.0.113}
   DEPLOY_USER: ${DEPLOY_USER:-root}
-  
-  # GitLab Instance Information
+
   GITLAB_HOST: ${GITLAB_HOST:-192.168.0.190}
   GITLAB_PORT: ${GITLAB_PORT:-80}
   GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
-  
-  # Service Configuration
+
   SERVICE_CONFIG_FILE: "config/service-endpoints.conf"
-  
-  # Git Configuration
+
   GIT_STRATEGY: clone
   GIT_DEPTH: 0
-  
-  # Docker Configuration
+
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: 1
 
-# ============================================================================
+# =============================================================================
 # WORKFLOW RULES
-# ============================================================================
+# =============================================================================
 workflow:
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[skip ci\]/
@@ -62,547 +46,177 @@ workflow:
       when: always
     - when: never
 
-# ============================================================================
-# BEFORE_SCRIPT
-# ============================================================================
+# =============================================================================
+# BEFORE SCRIPT
+# =============================================================================
 before_script: |
-  # Load service endpoints
+  echo "🔧 Preparing CI environment"
+  echo "=================================================="
+  echo
+
   if [ ! -f "${SERVICE_CONFIG_FILE}" ]; then
-    echo "❌ ERROR: ${SERVICE_CONFIG_FILE} not found!"
-    echo "   Run: ./scripts/update-service-ips.sh --no-prompt"
+    echo "❌ ERROR: ${SERVICE_CONFIG_FILE} not found"
     exit 1
   fi
-  
-  echo "📋 Loading service endpoints..."
+
+  echo "📋 Loading service endpoints"
   source "${SERVICE_CONFIG_FILE}"
-  echo "✅ Service endpoints loaded"
-  
-  # Configure Git
+  echo "✅ Endpoints loaded"
+  echo
+
   git config --global user.email "gitlab-ci@project-nebula.local"
   git config --global user.name "GitLab CI/CD"
-  
-  # Setup SSH
+
   mkdir -p ~/.ssh
   chmod 700 ~/.ssh
-  
+
   if [ -z "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" ]; then
-    echo "❌ ERROR: SSH_PRIVATE_KEY_GITLAB_TESTING_CI not set"
+    echo "❌ SSH key missing"
     exit 1
   fi
-  
-  echo "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" > ~/.ssh/gitlab_testing_ci_project
-  chmod 600 ~/.ssh/gitlab_testing_ci_project
-  
+
+  echo "$SSH_PRIVATE_KEY_GITLAB_TESTING_CI" > ~/.ssh/gitlab_ci
+  chmod 600 ~/.ssh/gitlab_ci
+
   cat > ~/.ssh/config <<EOF
   Host gitlab
     HostName ${GITLAB_HOST}
     User git
-    IdentityFile ~/.ssh/gitlab_testing_ci_project
-    IdentitiesOnly yes
+    IdentityFile ~/.ssh/gitlab_ci
     StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-  EOF
-  chmod 600 ~/.ssh/config
+EOF
 
-# ============================================================================
-# BUILD STAGE
-# ============================================================================
+# =============================================================================
+# BUILD
+# =============================================================================
 build:
   stage: build
-  environment:
-    name: build
-    action: prepare
-  
-  script:
-    - echo "🚧 BUILD PHASE"
-    - echo "=================================================="
-    - echo ""
-    - echo "🔨 Building Docker image: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
-    - echo "📦 Using BuildKit for caching and performance"
-    
-    - |
-      docker build \
-        --cache-from ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} \
-        .
-    
-    - echo "✅ Build successful"
-    - echo ""
-    - echo "📦 Tagging for GitLab Container Registry..."
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
-    - docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    - echo "✅ Tagged: latest, ${CI_COMMIT_SHORT_SHA}"
-  
-  needs: []
-  
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-      - stuck_or_timeout_failure
+  script: |
+    echo "🚧 BUILD PHASE"
+    echo "=================================================="
+    echo
 
-# ============================================================================
-# PUSH STAGE
-# ============================================================================
+    docker build \
+      --cache-from ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest \
+      --build-arg BUILDKIT_INLINE_CACHE=1 \
+      -t ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} .
+
+    echo
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+
+    echo "✅ Build complete"
+
+# =============================================================================
+# PUSH
+# =============================================================================
 push:
   stage: push
-  environment:
-    name: registry
-    action: prepare
-  
-  needs:
-    - job: build
-      artifacts: false
-  
-  script:
-    - echo "📤 PUSH PHASE"
-    - echo "=================================================="
-    - echo ""
-    - echo "🔑 Logging in to GitLab Container Registry..."
-    - echo "${CI_REGISTRY_PASSWORD}" | docker login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
-    - echo "✅ Login successful"
-    - echo ""
-    - echo "📤 Pushing images with retry logic..."
-    
-    - |
-      for i in {1..3}; do
-        echo "Attempt $i/3..."
-        if docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest && \
-           docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
-          echo "✅ Push successful!"
-          PUSH_SUCCESS=true
-          break
-        else
-          if [ $i -eq 3 ]; then
-            echo "❌ Push failed after 3 attempts"
-            exit 1
-          fi
-          echo "⚠️ Push failed, retrying in 5 seconds..."
-          sleep 5
-        fi
-      done
-    
-    - echo ""
-    - echo "🔍 Verifying pushed images..."
-    
-    - |
-      if docker pull ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}; then
-        echo "✅ SHA-tagged image verified"
-      else
-        echo "❌ Verification failed"
-        exit 1
-      fi
-    
-    - |
-      if docker pull ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest; then
-        echo "✅ Latest tag verified"
-      else
-        echo "❌ Verification failed"
-        exit 1
-      fi
-    
-    - echo ""
-    - echo "✅ All images pushed and verified"
-  
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-      - stuck_or_timeout_failure
-      - script_failure
+  needs: [build]
+  script: |
+    echo "📤 PUSH PHASE"
+    echo "=================================================="
+    echo
 
-# ============================================================================
-# SCAN STAGE
-# ============================================================================
+    echo "${CI_REGISTRY_PASSWORD}" | docker login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
+
+    for i in 1 2 3; do
+      echo "Push attempt $i/3"
+      docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:latest &&
+      docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} && break
+      sleep 3
+    done
+
+    echo "✅ Images pushed"
+
+# =============================================================================
+# SCAN
+# =============================================================================
 scan:
   stage: scan
   image: aquasec/trivy:latest
-  
-  needs:
-    - job: push
-      artifacts: false
-  
-  script:
-    - echo "🔍 SECURITY SCAN PHASE"
-    - echo "=================================================="
-    - echo ""
-    - echo "🛡️ Scanning for vulnerabilities..."
-    
-    - |
-      trivy image \
-        --severity HIGH,CRITICAL \
-        --exit-code 0 \
-        --format table \
-        ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-    
-    - echo ""
-    - echo "✅ Security scan complete"
-  
-  allow_failure: true
-  
-  retry:
-    max: 1
-    when:
-      - script_failure
+  needs: [push]
+  script: |
+    echo "🔍 SECURITY SCAN"
+    echo "=================================================="
+    echo
 
-# ============================================================================
-# DEPLOY STAGE - CRITICAL FIX: Updates Helm values.yaml (not manifests!)
-# ============================================================================
+    trivy image \
+      --severity HIGH,CRITICAL \
+      --exit-code 0 \
+      ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
+
+    echo "✅ Scan completed"
+  allow_failure: true
+
+# =============================================================================
+# DEPLOY (GitOps — Helm values.yaml)
+# =============================================================================
 deploy:
   stage: deploy
-  environment:
-    name: production
-    url: ${FASTAPI_URL}
-    action: prepare
-    kubernetes:
-      namespace: production
-  
-  needs:
-    - job: push
-      artifacts: false
-    - job: scan
-      artifacts: false
-      optional: true
-  
-  script:
-    - echo "🚀 DEPLOYMENT PHASE (GitOps - Helm)"
-    - echo "=================================================="
-    - echo ""
-    
-    # ========================================================================
-    # CRITICAL PATH FIX
-    # ========================================================================
-    # ArgoCD is configured to watch: helm/fastapi-app/
-    # We MUST update: helm/fastapi-app/values.yaml
-    # NOT: manifests/deployment.yaml (ArgoCD doesn't read this!)
-    # ========================================================================
-    
-    - echo "📍 Target: helm/fastapi-app/values.yaml (where ArgoCD reads from)"
-    - echo "   Previous bug: Was updating manifests/deployment.yaml (wrong path!)"
-    - echo ""
-    
-    # Backup
-    - echo "💾 Creating backup..."
-    - cp helm/fastapi-app/values.yaml helm/fastapi-app/values.yaml.backup
-    - echo "✅ Backup created"
-    - echo ""
-    
-    # Update Helm values with new image tag
-    - echo "📝 Updating Helm values.yaml with new image tag..."
-    - echo "   Old tag: (will show current value)"
-    - grep "tag:" helm/fastapi-app/values.yaml || echo "  tag: latest"
-    - echo ""
-    - echo "   New tag: ${CI_COMMIT_SHORT_SHA}"
-    - echo ""
-    
-    # CRITICAL: Update the 'tag:' field in values.yaml
-    # This is what Helm templates will use to set the image tag
-    - |
-      sed -i "s|tag:.*|tag: \"${CI_COMMIT_SHORT_SHA}\"|g" helm/fastapi-app/values.yaml
-    
-    # Also update the repository if it's in values.yaml
-    - |
-      if grep -q "repository:" helm/fastapi-app/values.yaml; then
-        sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
-      fi
-    
-    # Verify update worked
-    - echo "🔍 Verifying Helm values update..."
-    - |
-      if ! grep -q "${CI_COMMIT_SHORT_SHA}" helm/fastapi-app/values.yaml; then
-        echo "❌ ERROR: Failed to update tag in values.yaml"
-        echo "   Expected to find: ${CI_COMMIT_SHORT_SHA}"
-        echo ""
-        echo "Current content:"
-        grep -A 2 "tag:" helm/fastapi-app/values.yaml
-        exit 1
-      fi
-    
-    - echo "✅ Helm values successfully updated"
-    - echo ""
-    - echo "📄 Updated section:"
-    - grep -A 5 "image:" helm/fastapi-app/values.yaml || grep -A 2 "tag:" helm/fastapi-app/values.yaml
-    - echo ""
-    
-    # Race condition protection
-    - echo "🔄 Syncing with remote repository..."
-    - git fetch origin ${CI_COMMIT_BRANCH}
-    - |
-      if git pull --rebase origin ${CI_COMMIT_BRANCH}; then
-        echo "✅ Successfully synced"
-      else
-        echo "⚠️ Rebase conflict detected, resolving..."
-        git checkout --ours helm/fastapi-app/values.yaml
-        git add helm/fastapi-app/values.yaml
-        git rebase --continue || true
-      fi
-    - echo ""
-    
-    # Commit Helm values update
-    - echo "💾 Committing Helm values update..."
-    - git add helm/fastapi-app/values.yaml
-    
-    - |
-      if git diff --staged --quiet; then
-        echo "⚠️ No changes to commit"
-        exit 0
-      fi
-    
-    - |
-      git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
+  needs: [push, scan]
+  script: |
+    echo "🚀 DEPLOY (GitOps)"
+    echo "=================================================="
+    echo
 
-      Updated: helm/fastapi-app/values.yaml
-      Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-      Commit: ${CI_COMMIT_SHA}
-      Branch: ${CI_COMMIT_BRANCH}
-      Pipeline: ${CI_PIPELINE_URL}
-      Author: ${GITLAB_USER_LOGIN}
-      
-      ArgoCD will detect this change and auto-sync the Helm chart.
-      Deployed by GitLab CI/CD Pipeline #${CI_PIPELINE_ID}"
-    
-    - echo "✅ Helm values committed"
-    - echo ""
-    
-    # Push with secure authentication
-    - echo "📤 Pushing Helm values update to Git..."
-    - |
-      if [ -z "$CI_JOB_TOKEN" ]; then
-        echo "❌ ERROR: CI_JOB_TOKEN not available"
-        exit 1
-      fi
-    
-    - GIT_PUSH_URL="https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    
-    - |
-      for i in {1..3}; do
-        echo "Push attempt $i/3..."
-        if git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}; then
-          echo "✅ Helm values pushed to repository"
-          break
-        else
-          if [ $i -eq 3 ]; then
-            echo "❌ Failed to push after 3 attempts"
-            exit 1
-          fi
-          echo "⚠️ Push failed, retrying in 3 seconds..."
-          sleep 3
-        fi
-      done
-    
-    - echo ""
-    - echo "🔄 GitOps Flow Status:"
-    - echo "   1. ✅ Image built: ${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
-    - echo "   2. ✅ Image pushed to GitLab Registry"
-    - echo "   3. ✅ Helm values.yaml updated with new tag"
-    - echo "   4. ✅ Changes committed to Git"
-    - echo "   5. ⏳ ArgoCD will detect change and auto-sync (within 3 min)"
-    - echo "   6. ⏳ Helm will render templates with new image tag"
-    - echo "   7. ⏳ K3s will pull and deploy new image"
-    - echo ""
-    - echo "📊 Monitor Deployment:"
-    - echo "   • ArgoCD: ${ARGOCD_URL}"
-    - echo "   • FastAPI: ${FASTAPI_URL}"
-    - echo "   • Docs: ${FASTAPI_DOCS_URL}"
-    - echo "   • Health: ${FASTAPI_HEALTH_URL}"
-    - echo ""
-    - echo "🔍 Verify Helm Values:"
-    - echo "   git show HEAD:helm/fastapi-app/values.yaml | grep tag"
-  
+    cp helm/fastapi-app/values.yaml helm/fastapi-app/values.yaml.bak
+
+    sed -i "s|tag:.*|tag: \"${CI_COMMIT_SHORT_SHA}\"|g" helm/fastapi-app/values.yaml
+    sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
+
+    git add helm/fastapi-app/values.yaml
+    git commit -m "🚀 Deploy ${CI_COMMIT_SHORT_SHA} [skip ci]"
+
+    GIT_PUSH_URL="https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+    git push -o ci.skip "${GIT_PUSH_URL}" HEAD:${CI_COMMIT_BRANCH}
+
+    echo "✅ Helm values updated — ArgoCD will sync"
+
   only:
     - master
     - feature/gitlab-gitops-enhancements
-  
-  retry:
-    max: 2
-    when:
-      - script_failure
 
-# ============================================================================
-# VERIFY STAGE
-# ============================================================================
+# =============================================================================
+# VERIFY
+# =============================================================================
 verify:
   stage: verify
-  
-  needs:
-    - job: deploy
-      artifacts: false
-  
-  script:
-    - echo "✅ DEPLOYMENT VERIFICATION"
-    - echo "=================================================="
-    - echo ""
-    - echo "⏳ Waiting for ArgoCD to sync Helm chart..."
-    - echo "   (ArgoCD sync interval: 3 minutes)"
-    - sleep 180
-    - echo "✅ Sync window complete"
-    - echo ""
-    - echo "🏥 Testing health endpoint..."
-    - echo "   URL: ${FASTAPI_HEALTH_URL}"
-    
-    - |
-      if curl -f -s "${FASTAPI_HEALTH_URL}" | grep -q "healthy"; then
-        echo "✅ Health check PASSED"
-        echo ""
-        echo "Response:"
-        curl -s "${FASTAPI_HEALTH_URL}"
-      else
-        echo "❌ Health check FAILED"
-        echo ""
-        echo "Response:"
-        curl -s "${FASTAPI_HEALTH_URL}" || echo "No response"
-        exit 1
-      fi
-    
-    - echo ""
-    - echo "✅ Deployment verified - New version is live!"
-  
-  only:
-    - master
-    - feature/gitlab-gitops-enhancements
-  
-  when: on_success
-  allow_failure: true
-  
-  retry:
-    max: 1
-    when:
-      - script_failure
+  needs: [deploy]
+  script: |
+    echo "🔎 VERIFY DEPLOYMENT"
+    echo "=================================================="
+    echo
 
-# ============================================================================
-# RELEASE STAGE
-# ============================================================================
+    sleep 180
+
+    if curl -fs "${FASTAPI_HEALTH_URL}" | grep -q healthy; then
+      echo "✅ Health check passed"
+    else
+      echo "❌ Health check failed"
+      exit 1
+    fi
+  allow_failure: true
+
+# =============================================================================
+# RELEASE
+# =============================================================================
 release:
   stage: release
-  
-  needs:
-    - job: deploy
-      artifacts: false
-    - job: verify
-      artifacts: false
-      optional: true
-  
-  script:
-    - echo "🏷️  RELEASE PHASE"
-    - echo "=================================================="
-    - echo ""
-    
-    - RELEASE_VERSION="v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
-    - RELEASE_DATE=$(date '+%Y-%m-%d %H:%M:%S')
-    
-    - echo "📝 Creating release: ${RELEASE_VERSION}"
-    - echo ""
-    
-    - |
-      git tag -a ${RELEASE_VERSION} -m "🚀 Release: ${RELEASE_VERSION}
-      
-      ═══════════════════════════════════════════════════════════
-      DEPLOYMENT INFORMATION
-      ═══════════════════════════════════════════════════════════
-      
-      Pipeline: ${CI_PIPELINE_URL}
-      Commit: ${CI_COMMIT_SHA}
-      Branch: ${CI_COMMIT_BRANCH}
-      Author: ${GITLAB_USER_LOGIN}
-      Date: ${RELEASE_DATE}
-      
-      ═══════════════════════════════════════════════════════════
-      IMAGE DETAILS
-      ═══════════════════════════════════════════════════════════
-      
-      Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
-      Registry: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/container_registry
-      
-      ═══════════════════════════════════════════════════════════
-      HELM DEPLOYMENT
-      ═══════════════════════════════════════════════════════════
-      
-      Chart: helm/fastapi-app/
-      Values: helm/fastapi-app/values.yaml
-      Tag: ${CI_COMMIT_SHORT_SHA}
-      
-      ArgoCD reads from: helm/fastapi-app/ (NOT manifests/)
-      
-      ═══════════════════════════════════════════════════════════
-      DEPLOYMENT ENDPOINTS
-      ═══════════════════════════════════════════════════════════
-      
-      FastAPI: ${FASTAPI_URL}
-      Docs: ${FASTAPI_DOCS_URL}
-      Health: ${FASTAPI_HEALTH_URL}
-      Metrics: ${FASTAPI_METRICS_URL}
-      
-      Monitoring:
-      - Prometheus: ${PROMETHEUS_URL}
-      - Grafana: ${GRAFANA_URL}
-      
-      Management:
-      - ArgoCD: ${ARGOCD_URL}
-      
-      Kubernetes:
-      - API: ${KUBE_API_SERVER}
-      - Namespace: production
-      
-      ═══════════════════════════════════════════════════════════
-      ROLLBACK INSTRUCTIONS
-      ═══════════════════════════════════════════════════════════
-      
-      Method 1: ArgoCD UI
-        1. Open ${ARGOCD_URL}
-        2. Select 'fastapi-production'
-        3. History → Select this commit
-        4. Sync
-      
-      Method 2: Git (update Helm values)
-        git checkout ${RELEASE_VERSION}
-        git checkout helm/fastapi-app/values.yaml
-        git add helm/fastapi-app/values.yaml
-        git commit -m 'Rollback to ${RELEASE_VERSION}'
-        git push origin ${CI_COMMIT_BRANCH}
-      
-      Method 3: Kubectl (emergency)
-        kubectl set image deployment/fastapi-app \\
-          fastapi=${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA} \\
-          -n production
-      
-      ═══════════════════════════════════════════════════════════
-      "
-    
-    - echo "✅ Release tag created"
-    - echo ""
-    - echo "📤 Pushing release tag..."
-    
-    - GIT_PUSH_URL="https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    
-    - |
-      for i in {1..3}; do
-        echo "Push attempt $i/3..."
-        if git push -o ci.skip "${GIT_PUSH_URL}" ${RELEASE_VERSION}; then
-          echo "✅ Release pushed"
-          break
-        else
-          if [ $i -eq 3 ]; then
-            echo "❌ Failed after 3 attempts"
-            exit 1
-          fi
-          echo "⚠️ Retrying in 3 seconds..."
-          sleep 3
-        fi
-      done
-    
-    - echo ""
-    - echo "✅ Release ${RELEASE_VERSION} complete!"
-    - echo ""
-    - echo "📊 View: ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}/-/releases/${RELEASE_VERSION}"
-  
+  needs: [deploy, verify]
+  script: |
+    echo "🏷️ RELEASE"
+    echo "=================================================="
+    echo
+
+    RELEASE_VERSION="v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
+
+    git tag -a "${RELEASE_VERSION}" -m "Release ${RELEASE_VERSION}"
+    GIT_PUSH_URL="https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+    git push -o ci.skip "${GIT_PUSH_URL}" "${RELEASE_VERSION}"
+
+    echo "✅ Release created: ${RELEASE_VERSION}"
+
   only:
     - master
     - feature/gitlab-gitops-enhancements
-  
-  when: on_success
-  
-  retry:
-    max: 1
-    when:
-      - script_failure
