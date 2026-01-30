@@ -299,10 +299,13 @@ deploy:
     echo "📝 Updating Helm chart values with new image tag..."
     
     # Update helm/fastapi-app/values.yaml with new image tag
-    sed -i "s|image:.*fastapi-demo.*|image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
+    # Fix: Repository is on its own line, so we match with proper indentation
+    sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
     sed -i "s|tag:.*|tag: ${CI_COMMIT_SHORT_SHA}|g" helm/fastapi-app/values.yaml
     
     echo "✅ Updated helm/fastapi-app/values.yaml"
+    echo "   Repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}"
+    echo "   Tag: ${CI_COMMIT_SHORT_SHA}"
     
     # -----> NEW: Commit and push updated Helm values to Git
     echo ""
