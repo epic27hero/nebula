@@ -101,6 +101,9 @@ update-helm:
   script: |
     echo "🧠 UPDATE HELM VALUES (GitOps)"
 
+    echo "📌 Attaching to branch ${CI_COMMIT_BRANCH}"
+    git checkout -B ${CI_COMMIT_BRANCH}
+
     echo "📄 BEFORE"
     grep -n "repository:\|tag:" ${HELM_VALUES_FILE}
 
@@ -116,6 +119,8 @@ update-helm:
 
     git add ${HELM_VALUES_FILE}
     git commit -m "ci(gitops): update image to ${IMAGE_TAG} [skip ci]"
+
+    echo "📤 Pushing to ${CI_COMMIT_BRANCH}"
     git push origin ${CI_COMMIT_BRANCH}
 
     echo "✅ HELM UPDATED — ARGOCD WILL AUTO-SYNC"
