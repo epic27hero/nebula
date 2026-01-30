@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: "${CI_REGISTRY}/${CI_PROJECT_PATH}/fastapi-demo"
-  tag: "latest"
+  tag: ""  # Empty - will be set dynamically by CI pipeline during deployment
 
 service:
   port: 80

@@ -295,21 +295,22 @@ deploy:
     echo "   Registry: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
     echo ""
     
-    # -----> NEW: Update Kubernetes manifests with new image
-    echo "📝 Updating Kubernetes manifests with new image tag..."
+    # -----> NEW: Update Helm chart values with new image tag
+    echo "📝 Updating Helm chart values with new image tag..."
     
-    # Update deployment.yaml with new image
-    sed -i "s|image:.*fastapi-demo.*|image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}|g" manifests/deployment.yaml
+    # Update helm/fastapi-app/values.yaml with new image tag
+    sed -i "s|image:.*fastapi-demo.*|image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" helm/fastapi-app/values.yaml
+    sed -i "s|tag:.*|tag: ${CI_COMMIT_SHORT_SHA}|g" helm/fastapi-app/values.yaml
     
-    echo "✅ Updated manifests/deployment.yaml"
+    echo "✅ Updated helm/fastapi-app/values.yaml"
     
-    # -----> NEW: Commit and push updated manifest to Git
+    # -----> NEW: Commit and push updated Helm values to Git
     echo ""
-    echo "📤 Committing manifest update to Git..."
+    echo "📤 Committing Helm values update to Git..."
 
     git config user.email "gitlab-ci@project-nebula.local"
     git config user.name "GitLab CI/CD"
-    git add manifests/deployment.yaml
+    git add helm/fastapi-app/values.yaml
     git commit -m "🚀 Deploy: Update FastAPI image to ${CI_COMMIT_SHORT_SHA} [skip ci]
 
     Image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}
@@ -327,13 +328,13 @@ deploy:
 
 
 
-    echo "✅ Manifest committed and pushed to Git"
+    echo "✅ Helm values committed and pushed to Git"
     echo ""
     
     # -----> NEW: Explain GitOps flow
     echo "🔄 GitOps Flow:"
     echo "   1. ✅ Image built and pushed to GitLab Registry"
-    echo "   2. ✅ Manifest updated with new image tag"
+    echo "   2. ✅ Helm values updated with new image tag"
     echo "   3. ✅ Changes committed to Git"
     echo "   4. ⏳ ArgoCD will auto-sync within 3 minutes"
     echo "   5. ⏳ K3s cluster will receive new image"
