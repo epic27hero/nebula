@@ -18,7 +18,7 @@ spec:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1        # Max 1 extra pod during update
-      maxUnavailable: 1  # Max 1 pod down during update
+      maxUnavailable: 0  # Max 1 pod down during update
   
   # Selector to match pods
   selector:
