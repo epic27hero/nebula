@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: 192.168.0.190:5005/root/project_nebula/fastapi-demo
-  tag: "latest"
+  tag: ""
 
 imagePullSecrets:
   - name: gitlab-registry
