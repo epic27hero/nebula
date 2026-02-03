@@ -4,6 +4,7 @@ stages:
   - update-helm
   - deploy
   - release
+  - discovery
 
 # ============================================================
 # GLOBAL VARIABLES
@@ -205,3 +206,88 @@ release:
     git push "${GIT_PUSH_URL}" "${NEBULA_TAG}"
 
     echo "✅ NEBULA RELEASE CREATED → ${NEBULA_TAG}"
+
+# ============================================================
+# DISCOVERY — SERVICE ENDPOINT DISCOVERY WITH ERROR HANDLING
+# ============================================================
+print-service-ips:
+  stage: discovery
+  image: bitnami/kubectl:latest
+  script: |
+    set +e  # Continue on errors to show results
+    
+    echo "🔍 DISCOVERY STAGE - Infrastructure Endpoints"
+    echo "=========================================="
+    
+    # Verify kubectl is available
+    if ! command -v kubectl &> /dev/null; then
+      echo "❌ ERROR: kubectl is not available"
+      exit 1
+    fi
+    
+    echo "✅ kubectl found: $(kubectl version --client --short 2>/dev/null || echo 'version check failed')"
+    echo ""
+    
+    # Function to safely extract service IP with error handling
+    get_service_ip() {
+      local SERVICE_NAME=$1
+      local NAMESPACE=$2
+      local DISPLAY_NAME=$3
+      
+      # Check if service exists
+      if ! kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" &>/dev/null; then
+        echo "⚠️  $DISPLAY_NAME: SERVICE NOT FOUND ($SERVICE_NAME in ns/$NAMESPACE)"
+        return 1
+      fi
+      
+      # Extract IP
+      local IP=$(kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" \
+        -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+      
+      # Handle pending or missing IPs
+      if [ -z "$IP" ]; then
+        echo "⏳ $DISPLAY_NAME: IP NOT YET ASSIGNED (service pending)"
+        return 1
+      fi
+      
+      echo "✅ $DISPLAY_NAME: $IP"
+      return 0
+    }
+    
+    echo "--- Service IPs ---"
+    echo ""
+    
+    # Collect all results
+    ARGO_RESULT=0
+    GRAFANA_RESULT=0
+    PROM_RESULT=0
+    FASTAPI_RESULT=0
+    GATEWAY_RESULT=0
+    
+    # Attempt to retrieve each service IP
+    get_service_ip "argocd-server" "argocd" "ArgoCD" || ARGO_RESULT=$?
+    get_service_ip "grafana" "monitoring" "Grafana" || GRAFANA_RESULT=$?
+    get_service_ip "prometheus-server" "monitoring" "Prometheus" || PROM_RESULT=$?
+    get_service_ip "fastapi-app-lb" "production" "FastAPI (Prod)" || FASTAPI_RESULT=$?
+    get_service_ip "envoy-production-prod-gateway-5e00b6bc" "gateway-system" "Gateway" || GATEWAY_RESULT=$?
+    
+    echo ""
+    
+    # Summary
+    FAILED_COUNT=$((ARGO_RESULT + GRAFANA_RESULT + PROM_RESULT + FASTAPI_RESULT + GATEWAY_RESULT))
+    
+    if [ $FAILED_COUNT -eq 5 ]; then
+      echo "❌ ERROR: No services found. Cluster may not be properly configured."
+      exit 1
+    elif [ $FAILED_COUNT -gt 0 ]; then
+      echo "⚠️  WARNING: $FAILED_COUNT service(s) unavailable or IP not assigned yet"
+      echo "💡 Services may still be starting. Check cluster status with:"
+      echo "   kubectl get svc -A"
+      exit 0  # Don't fail the pipeline if some services are missing
+    else
+      echo "✅ All services are accessible"
+      exit 0
+    fi
+  allow_failure: true  # This stage won't block pipeline on failure
+  tags:
+    - k8s-runner

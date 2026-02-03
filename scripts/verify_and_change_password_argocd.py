@@ -1,10 +1,15 @@
 import subprocess
 import time
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # ================= CONFIG =================
 NAMESPACE = "argocd"
-NEW_PASSWORD = "Souvik123!"
+NEW_PASSWORD = os.getenv("GRAFANA_PASSWORD")
 SERVER = "192.168.0.202:80"
 # ==========================================
 
