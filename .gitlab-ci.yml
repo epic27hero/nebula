@@ -108,42 +108,104 @@ push:
 update-helm:
   stage: update-helm
   script: |
-      set -e
+    set -e
 
-        # ------------------------------------------------------------
-        # SSH directory setup (runner-owned)
-        # ------------------------------------------------------------
-        mkdir -p "$HOME/.ssh"
-        chmod 700 "$HOME/.ssh"
+    echo "🧠 UPDATE HELM VALUES (GitOps)"
 
-        # ------------------------------------------------------------
-        # HARD RESET key file (ownership fix)
-        # ------------------------------------------------------------
-        rm -f "$HOME/.ssh/id_main_113"
+    echo "📌 Using branch: ${CI_COMMIT_BRANCH}"
 
-        echo "$SSH_PRIVATE_KEY_MAIN_113" > "$HOME/.ssh/id_main_113"
-        chmod 600 "$HOME/.ssh/id_main_113"
+    git config user.name "gitlab-ci"
+    git config user.email "gitlab-ci@project-nebula.local"
 
-        # ------------------------------------------------------------
-        # Validate key format
-        # ------------------------------------------------------------
-        ssh-keygen -lf "$HOME/.ssh/id_main_113"
+    echo "🔐 Configuring PAT-based push URL"
+    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+    git remote set-url origin "${GIT_PUSH_URL}"
 
-        # ------------------------------------------------------------
-        # SSH config (idempotent)
-        # ------------------------------------------------------------
-        grep -q "Host main-113" "$HOME/.ssh/config" 2>/dev/null || cat <<'EOF' >> "$HOME/.ssh/config"
-        Host main-113
-          HostName 192.168.0.113
-          User root
-          IdentityFile ~/.ssh/id_main_113
-          IdentitiesOnly yes
-          StrictHostKeyChecking no
-          UserKnownHostsFile /dev/null
-        EOF
+    echo "🔁 Attaching to branch (exit detached HEAD)"
+    git checkout -B "${CI_COMMIT_BRANCH}"
 
-        chmod 600 "$HOME/.ssh/config"
+    echo "📄 BEFORE"
+    grep -n "repository:\|tag:" "${HELM_VALUES_FILE}"
 
+    echo "✏️ Updating repository + tag"
+    sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" "${HELM_VALUES_FILE}"
+    sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" "${HELM_VALUES_FILE}"
+
+    echo "📄 AFTER"
+    grep -n "repository:\|tag:" "${HELM_VALUES_FILE}"
+
+    echo "🔍 Git diff (proof)"
+    git diff "${HELM_VALUES_FILE}" || true
+
+    git add "${HELM_VALUES_FILE}"
+
+    if git diff --cached --quiet; then
+      echo "ℹ️ No changes detected — skipping commit"
+      exit 0
+    fi
+
+    git commit -m "ci(gitops): update image to ${IMAGE_TAG} [skip ci]"
+
+    echo "📤 Pushing to ${CI_COMMIT_BRANCH}"
+    git push origin "${CI_COMMIT_BRANCH}"
+
+    echo "✅ HELM UPDATED — ARGOCD WILL AUTO-SYNC"
+
+
+# ============================================================
+# DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
+# ============================================================
+
+print-service-ips:
+  stage: discovery
+  before_script:
+  - |
+    set -e
+
+    echo "===== CI SSH PRE-FLIGHT ====="
+    whoami
+    pwd
+
+    # ------------------------------------------------------------
+    # SSH directory (ABSOLUTE PATHS)
+    # ------------------------------------------------------------
+    mkdir -p /home/gitlab-runner/.ssh
+    chmod 700 /home/gitlab-runner/.ssh
+
+    echo "--- SSH DIR OWNERSHIP ---"
+    ls -ld /home/gitlab-runner/.ssh
+    ls -la /home/gitlab-runner/.ssh
+
+    # ------------------------------------------------------------
+    # FORCE reset SSH key (prevents root-owned file issue)
+    # ------------------------------------------------------------
+    rm -f /home/gitlab-runner/.ssh/id_main_113
+    echo "$SSH_PRIVATE_KEY_MAIN_113" > /home/gitlab-runner/.ssh/id_main_113
+    chmod 600 /home/gitlab-runner/.ssh/id_main_113
+
+    # ------------------------------------------------------------
+    # Validate key format
+    # ------------------------------------------------------------
+    ssh-keygen -lf /home/gitlab-runner/.ssh/id_main_113
+
+    # ------------------------------------------------------------
+    # SSH config (IDEMPOTENT)
+    # ------------------------------------------------------------
+    if ! grep -q "Host main-113" /home/gitlab-runner/.ssh/config 2>/dev/null; then
+      cat <<'EOF' >> /home/gitlab-runner/.ssh/config
+    Host main-113
+      HostName 192.168.0.113
+      User root
+      IdentityFile /home/gitlab-runner/.ssh/id_main_113
+      IdentitiesOnly yes
+      StrictHostKeyChecking no
+      UserKnownHostsFile /dev/null
+    EOF
+    fi
+
+    chmod 600 /home/gitlab-runner/.ssh/config
+
+    echo "===== SSH PRE-FLIGHT COMPLETE ====="
   script:
     - echo "🔍 Fetching and storing Infrastructure IPs..."
     - |
