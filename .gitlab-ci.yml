@@ -108,87 +108,41 @@ push:
 update-helm:
   stage: update-helm
   script: |
-    set -e
+      set -e
 
-    echo "🧠 UPDATE HELM VALUES (GitOps)"
+        # ------------------------------------------------------------
+        # SSH directory setup (runner-owned)
+        # ------------------------------------------------------------
+        mkdir -p "$HOME/.ssh"
+        chmod 700 "$HOME/.ssh"
 
-    echo "📌 Using branch: ${CI_COMMIT_BRANCH}"
+        # ------------------------------------------------------------
+        # HARD RESET key file (ownership fix)
+        # ------------------------------------------------------------
+        rm -f "$HOME/.ssh/id_main_113"
 
-    git config user.name "gitlab-ci"
-    git config user.email "gitlab-ci@project-nebula.local"
+        echo "$SSH_PRIVATE_KEY_MAIN_113" > "$HOME/.ssh/id_main_113"
+        chmod 600 "$HOME/.ssh/id_main_113"
 
-    echo "🔐 Configuring PAT-based push URL"
-    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-    git remote set-url origin "${GIT_PUSH_URL}"
+        # ------------------------------------------------------------
+        # Validate key format
+        # ------------------------------------------------------------
+        ssh-keygen -lf "$HOME/.ssh/id_main_113"
 
-    echo "🔁 Attaching to branch (exit detached HEAD)"
-    git checkout -B "${CI_COMMIT_BRANCH}"
+        # ------------------------------------------------------------
+        # SSH config (idempotent)
+        # ------------------------------------------------------------
+        grep -q "Host main-113" "$HOME/.ssh/config" 2>/dev/null || cat <<'EOF' >> "$HOME/.ssh/config"
+        Host main-113
+          HostName 192.168.0.113
+          User root
+          IdentityFile ~/.ssh/id_main_113
+          IdentitiesOnly yes
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        EOF
 
-    echo "📄 BEFORE"
-    grep -n "repository:\|tag:" "${HELM_VALUES_FILE}"
-
-    echo "✏️ Updating repository + tag"
-    sed -i "s|repository:.*|repository: ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}|g" "${HELM_VALUES_FILE}"
-    sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" "${HELM_VALUES_FILE}"
-
-    echo "📄 AFTER"
-    grep -n "repository:\|tag:" "${HELM_VALUES_FILE}"
-
-    echo "🔍 Git diff (proof)"
-    git diff "${HELM_VALUES_FILE}" || true
-
-    git add "${HELM_VALUES_FILE}"
-
-    if git diff --cached --quiet; then
-      echo "ℹ️ No changes detected — skipping commit"
-      exit 0
-    fi
-
-    git commit -m "ci(gitops): update image to ${IMAGE_TAG} [skip ci]"
-
-    echo "📤 Pushing to ${CI_COMMIT_BRANCH}"
-    git push origin "${CI_COMMIT_BRANCH}"
-
-    echo "✅ HELM UPDATED — ARGOCD WILL AUTO-SYNC"
-
-
-# ============================================================
-# DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
-# ============================================================
-
-print-service-ips:
-  stage: discovery
-  before_script: |
-      # ------------------------------------------------------------
-      # SSH directory setup
-      # ------------------------------------------------------------
-      mkdir -p ~/.ssh
-      chmod 700 ~/.ssh
-      ls -la ~/.ssh/
-
-      # ------------------------------------------------------------
-      # Write private SSH key from GitLab CI variable
-      # ------------------------------------------------------------
-      echo "$SSH_PRIVATE_KEY_MAIN_113" > ~/.ssh/id_main_113
-      chmod 600 ~/.ssh/id_main_113
-
-      # ------------------------------------------------------------
-      # Validate key format
-      # ------------------------------------------------------------
-      ssh-keygen -lf ~/.ssh/id_main_113
-
-      # ------------------------------------------------------------
-      # SSH config for main-113 (idempotent)
-      # ------------------------------------------------------------
-      grep -q "Host main-113" ~/.ssh/config || cat <<'EOF' >> ~/.ssh/config
-      Host main-113
-        HostName 192.168.0.113
-        User root
-        IdentityFile ~/.ssh/id_main_113
-        IdentitiesOnly yes
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-      EOF
+        chmod 600 "$HOME/.ssh/config"
 
   script:
     - echo "🔍 Fetching and storing Infrastructure IPs..."
