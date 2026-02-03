@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Nebula - Complete Architecture Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0066cc;
+            font-size: 36px;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 15px;
+        }
+        h2 {
+            color: #0066cc;
+            font-size: 28px;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            page-break-after: avoid;
+        }
+        h3 {
+            color: #333;
+            font-size: 20px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        h4 {
+            color: #555;
+            font-size: 16px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+            font-size: 14px;
+        }
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .toc {
+            background-color: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 20px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .toc h3 {
+            margin-top: 0;
+        }
+        .toc ol {
+            margin-left: 20px;
+        }
+        .toc li {
+            margin-bottom: 8px;
+        }
+        .toc a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .highlight-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        .warning-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        table th {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            page-break-inside: avoid;
+        }
+        .diagram {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 11px;
+            white-space: pre;
+            overflow-x: auto;
+            page-break-inside: avoid;
+        }
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .section-break {
+            page-break-after: always;
+            margin-bottom: 40px;
+        }
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .benefit-card {
+            background-color: #f0f7ff;
+            border: 1px solid #0066cc;
+            border-radius: 4px;
+            padding: 15px;
+            page-break-inside: avoid;
+        }
+        .benefit-card h4 {
+            color: #0066cc;
+            margin-top: 0;
+        }
+        .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        strong {
+            color: #0066cc;
+        }
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                max-width: 100%;
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Title -->
+        <h1>🚀 Project Nebula</h1>
+        <p class="subtitle">Complete Architecture Guide & Infrastructure Documentation</p>
+
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h3>📋 Table of Contents</h3>
+            <ol>
+                <li><a href="#overview">Project Overview</a></li>
+                <li><a href="#architecture">Architecture Components</a></li>
+                <li><a href="#kubernetes">Understanding Kubernetes</a></li>
+                <li><a href="#components">Component Deep Dive</a></li>
+                <li><a href="#workflow">Deployment Workflow</a></li>
+                <li><a href="#benefits">Benefits & Why This Matters</a></li>
+                <li><a href="#operations">Operations & Management</a></li>
+                <li><a href="#access">Access Points & Connections</a></li>
+            </ol>
+        </div>
+
+        <!-- SECTION 1: Project Overview -->
+        <h2 id="overview">1. Project Overview</h2>
+
+        <h3>What is Project Nebula?</h3>
+        <p>Project Nebula is a complete, production-ready Kubernetes infrastructure designed to deploy, manage, and monitor containerized applications. It combines several powerful technologies to create an enterprise-grade platform that can scale applications reliably with minimal downtime.</p>
+
+        <div class="info-box">
+            <strong>Core Features:</strong><br>
+            ✅ Containerized FastAPI Application with automatic scaling<br>
+            ✅ Kubernetes Cluster for container orchestration<br>
+            ✅ Continuous Delivery via ArgoCD (GitOps)<br>
+            ✅ Load Balancing with MetalLB<br>
+            ✅ Monitoring with Prometheus + Grafana<br>
+            ✅ Automated Deployment via GitLab CI/CD<br>
+            ✅ Infrastructure as Code with Terraform
+        </div>
+
+        <h3>Problems It Solves</h3>
+        <ul>
+            <li><strong>Reliability:</strong> If one pod fails, another automatically takes over</li>
+            <li><strong>Scalability:</strong> Add more replicas with a single configuration change</li>
+            <li><strong>Visibility:</strong> Real-time monitoring of all systems</li>
+            <li><strong>Automation:</strong> Zero-downtime deployments via GitOps</li>
+            <li><strong>Consistency:</strong> Infrastructure as Code ensures reproducible setups</li>
+            <li><strong>Easy Management:</strong> Declarative configuration instead of manual operations</li>
+        </ul>
+
+        <!-- SECTION 2: Architecture Components -->
+        <h2 id="architecture">2. Architecture Components</h2>
+
+        <h3>High-Level Component Diagram</h3>
+        <div class="diagram">Your Git Repository (Code + Manifests)
+           ↓
+GitLab CI/CD Pipeline (Build & Push Docker Image)
+           ↓
+Docker Registry (192.168.0.113:5000)
+           ↓
+K3s Kubernetes Cluster (192.168.0.113)
+   ├─ ArgoCD (GitOps Engine) - watches Git
+   ├─ FastAPI Application (3 pods)
+   ├─ Prometheus (Metrics collection)
+   ├─ Grafana (Dashboards)
+   ├─ MetalLB (Load balancer)
+   └─ Gateway API (Ingress)
+           ↓
+External Load Balanced IPs
+   ├─ 192.168.0.202 → ArgoCD UI
+   ├─ 192.168.0.203 → FastAPI API
+   ├─ 192.168.0.204 → Prometheus
+   └─ 192.168.0.205 → Grafana
+        </div>
+
+        <h3>Component Overview</h3>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Purpose</th>
+                <th>Type</th>
+                <th>Access Point</th>
+            </tr>
+            <tr>
+                <td><strong>GitLab</strong></td>
+                <td>Repository & CI/CD automation</td>
+                <td>External service</td>
+                <td>192.168.0.190</td>
+            </tr>
+            <tr>
+                <td><strong>Docker Registry</strong></td>
+                <td>Container image storage</td>
+                <td>Container registry</td>
+                <td>192.168.0.113:5000</td>
+            </tr>
+            <tr>
+                <td><strong>K3s Cluster</strong></td>
+                <td>Container orchestration</td>
+                <td>Kubernetes cluster</td>
+                <td>192.168.0.113</td>
+            </tr>
+            <tr>
+                <td><strong>ArgoCD</strong></td>
+                <td>GitOps deployment automation</td>
+                <td>K8s application</td>
+                <td>192.168.0.202</td>
+            </tr>
+            <tr>
+                <td><strong>FastAPI App</strong></td>
+                <td>Business application</td>
+                <td>K8s deployment</td>
+                <td>192.168.0.203</td>
+            </tr>
+            <tr>
+                <td><strong>Prometheus</strong></td>
+                <td>Metrics collection</td>
+                <td>K8s deployment</td>
+                <td>192.168.0.204:9090</td>
+            </tr>
+            <tr>
+                <td><strong>Grafana</strong></td>
+                <td>Metrics visualization</td>
+                <td>K8s deployment</td>
+                <td>192.168.0.205:3000</td>
+            </tr>
+            <tr>
+                <td><strong>MetalLB</strong></td>
+                <td>Load balancer IP assignment</td>
+                <td>K8s system service</td>
+                <td>Internal</td>
+            </tr>
+        </table>
+
+        <div class="section-break"></div>
+
+        <!-- SECTION 3: Understanding Kubernetes -->
+        <h2 id="kubernetes">3. Understanding Kubernetes</h2>
+
+        <h3>What is Kubernetes?</h3>
+        <p>Kubernetes (K8s) is an orchestration platform for containerized applications. It automates deployment, scaling, and management of application containers across clusters of machines. Think of it as an intelligent container manager that keeps your applications running, scales them as needed, and handles failures automatically.</p>
+
+        <h3>Key Kubernetes Concepts</h3>
+
+        <h4>📦 Pods</h4>
+        <p><strong>Definition:</strong> The smallest deployable unit in Kubernetes. A pod wraps one or more containers.</p>
+        <div class="info-box">
+            <strong>Key Points:</strong><br>
+            • Usually contains 1 container (rarely more)<br>
+            • All containers in a pod share the same IP address<br>
+            • Pods are ephemeral (temporary, can be created/destroyed)<br>
+            • Example pod name: fastapi-app-78d65658cb-9zzwk<br>
+            • Pod IP (internal): 10.42.0.114<br>
+            • Pod gets unique hostname automatically
+        </div>
+
+        <h4>🎯 Services</h4>
+        <p><strong>Definition:</strong> An abstraction that defines a logical set of pods and a policy by which to access them. Services provide stable, load-balanced access to pods.</p>
+        <div class="highlight-box">
+            <strong>Why Services Matter:</strong><br>
+            Pods are temporary and get deleted/recreated. Services provide a stable endpoint that always works, even when underlying pods change. They also handle load balancing automatically.
+        </div>
+
+        <p><strong>Service Types:</strong></p>
+        <ul>
+            <li><strong>ClusterIP:</strong> Internal-only access (default)</li>
+            <li><strong>LoadBalancer:</strong> External IP + load balancing (what we use for FastAPI)</li>
+            <li><strong>NodePort:</strong> Access via node IP + high port number</li>
+            <li><strong>ExternalName:</strong> DNS alias to external service</li>
+        </ul>
+
+        <h4>🔄 Deployments</h4>
+        <p><strong>Definition:</strong> Manages the creation and updating of pod replicas. Ensures the desired number of pods are always running.</p>
+        <div class="success-box">
+            <strong>How Deployments Work:</strong><br>
+            1. You specify: "I want 3 copies of my app"<br>
+            2. Deployment creates 3 pods automatically<br>
+            3. If one pod fails, deployment creates a new one<br>
+            4. When you update the image, deployment rolls out new pods gradually<br>
+            5. Old pods are gracefully terminated = zero downtime!
+        </div>
+
+        <h4>🏷️ Namespaces</h4>
+        <p><strong>Definition:</strong> Virtual clusters within a Kubernetes cluster. Isolate different applications or environments.</p>
+        <p><strong>Our Namespaces:</strong></p>
+        <ul>
+            <li><strong>production:</strong> FastAPI application runs here</li>
+            <li><strong>monitoring:</strong> Prometheus and Grafana run here</li>
+            <li><strong>argocd:</strong> ArgoCD and deployment automation</li>
+            <li><strong>kube-system:</strong> Core Kubernetes components</li>
+        </ul>
+
+        <!-- SECTION 4: Component Deep Dive -->
+        <h2 id="components">4. Component Deep Dive</h2>
+
+        <h3>A. FastAPI Application</h3>
+        <h4>What it does:</h4>
+        <p>FastAPI is a modern Python web framework for building REST APIs. Our application provides endpoints that return system information and metrics.</p>
+        
+        <h4>Deployment Details:</h4>
+        <table>
+            <tr>
+                <th>Property</th>
+                <th>Value</th>
+                <th>Explanation</th>
+            </tr>
+            <tr>
+                <td>Replicas</td>
+                <td>3</td>
+                <td>Three copies running for load balancing and high availability</td>
+            </tr>
+            <tr>
+                <td>Container Image</td>
+                <td>192.168.0.113:5000/fastapi-demo:latest</td>
+                <td>Docker image from local registry</td>
+            </tr>
+            <tr>
+                <td>Port</td>
+                <td>8000</td>
+                <td>Internal container port</td>
+            </tr>
+            <tr>
+                <td>External IP</td>
+                <td>192.168.0.203</td>
+                <td>LoadBalancer service IP (MetalLB assigned)</td>
+            </tr>
+            <tr>
+                <td>External Port</td>
+                <td>80</td>
+                <td>HTTP port for external access</td>
+            </tr>
+            <tr>
+                <td>Namespace</td>
+                <td>production</td>
+                <td>Isolated environment for production workloads</td>
+            </tr>
+        </table>
+
+        <h4>Endpoints Provided:</h4>
+        <ul>
+            <li><strong>GET /</strong> - Returns pod info, node info, and all 3 IPs</li>
+            <li><strong>GET /health</strong> - Health check endpoint</li>
+            <li><strong>GET /metrics</strong> - Prometheus metrics (request counts, etc.)</li>
+            <li><strong>GET /docs</strong> - Interactive Swagger UI documentation</li>
+        </ul>
+
+        <h4>Request Flow Example:</h4>
+        <div class="code-block">
+User types in browser: http://192.168.0.203/
+
+Request Path:
+1. Browser request arrives at 192.168.0.203:80
+2. MetalLB intercepts and translates to service IP
+3. Service uses iptables rules to pick a pod IP (e.g., 10.42.0.114)
+4. Request forwarded to pod:8000
+5. FastAPI processes request
+6. Response sent back through same path
+7. Browser displays response
+
+Total latency: ~10-50ms
+        </div>
+
+        <h3>B. ArgoCD (GitOps Engine)</h3>
+        <h4>What it does:</h4>
+        <p>ArgoCD watches your Git repository and automatically syncs any changes to your Kubernetes cluster. When you push code, ArgoCD detects it and deploys the new version automatically.</p>
+
+        <h4>How it works:</h4>
+        <ol>
+            <li>ArgoCD polls Git repository every 3 minutes (or on webhook)</li>
+            <li>Compares current cluster state with Git desired state</li>
+            <li>If different, applies the changes</li>
+            <li>Uses Helm charts to render templates</li>
+            <li>Applies rendered manifests to cluster</li>
+            <li>Monitors rollout and reports health</li>
+        </ol>
+
+        <div class="success-box">
+            <strong>Key Benefit:</strong> Your cluster state is always defined in Git. To change deployment, just modify Git - ArgoCD handles the rest!
+        </div>
+
+        <h4>Current Applications:</h4>
+        <ul>
+            <li><strong>fastapi-prod:</strong> Production FastAPI deployment</li>
+            <li><strong>prometheus:</strong> Metrics collection</li>
+            <li><strong>grafana:</strong> Dashboards and alerting</li>
+        </ul>
+
+        <h4>Access:</h4>
+        <p>ArgoCD UI: http://192.168.0.202</p>
+
+        <h3>C. Prometheus (Metrics Collection)</h3>
+        <h4>What it does:</h4>
+        <p>Prometheus collects time-series metrics from all applications and infrastructure components. It scrapes metrics, stores them, and provides query interface.</p>
+
+        <h4>How it works:</h4>
+        <ul>
+            <li>Scrapes metrics from /metrics endpoints every 15 seconds</li>
+            <li>Stores metrics in time-series database</li>
+            <li>Default retention: 30 days</li>
+            <li>Provides query language (PromQL) for analysis</li>
+            <li>Can trigger alerts based on metric thresholds</li>
+        </ul>
+
+        <h4>Metrics Collected:</h4>
+        <ul>
+            <li><strong>Application metrics:</strong> Request counts, latency, errors</li>
+            <li><strong>Pod metrics:</strong> CPU usage, memory usage</li>
+            <li><strong>Kubelet metrics:</strong> Node health, resource usage</li>
+            <li><strong>Container metrics:</strong> Runtime stats</li>
+        </ul>
+
+        <h4>Access:</h4>
+        <p>Prometheus UI: http://192.168.0.204:9090</p>
+
+        <h3>D. Grafana (Dashboards & Visualization)</h3>
+        <h4>What it does:</h4>
+        <p>Grafana provides beautiful dashboards and visualizations of metrics collected by Prometheus. Create graphs, alerts, and monitoring workflows.</p>
+
+        <h4>Features:</h4>
+        <ul>
+            <li>Pre-built dashboards for Kubernetes</li>
+            <li>Real-time graph visualization</li>
+            <li>Alert notifications</li>
+            <li>Multi-datasource support</li>
+            <li>User authentication and permissions</li>
+        </ul>
+
+        <h4>Access:</h4>
+        <p>Grafana UI: http://192.168.0.205:3000<br>
+        Username: admin<br>
+        Password: grafana</p>
+
+        <h3>E. MetalLB (Load Balancer)</h3>
+        <h4>What it does:</h4>
+        <p>MetalLB implements LoadBalancer services in Kubernetes. It assigns external IPs from a configured pool to LoadBalancer services.</p>
+
+        <h4>How it works:</h4>
+        <ul>
+            <li><strong>IP Pool:</strong> 192.168.0.201 - 192.168.0.250</li>
+            <li><strong>Protocol:</strong> Layer 2 (ARP-based)</li>
+            <li><strong>Assignment:</strong> Automatic when service created</li>
+            <li><strong>HA:</strong> 2 replicas for high availability</li>
+        </ul>
+
+        <div class="highlight-box">
+            <strong>Why MetalLB Matters:</strong> Without it, LoadBalancer services would stay in "pending" state because Kubernetes doesn't have built-in external IP support. MetalLB fills this gap on bare metal/on-premise clusters.
+        </div>
+
+        <h3>F. Terraform (Infrastructure as Code)</h3>
+        <h4>What it does:</h4>
+        <p>Terraform defines all infrastructure as code. Enables reproducible, version-controlled infrastructure.</p>
+
+        <h4>What Terraform Manages:</h4>
+        <ul>
+            <li>Kubernetes namespaces</li>
+            <li>MetalLB module and configuration</li>
+            <li>ArgoCD module and installation</li>
+            <li>Gateway API for ingress</li>
+        </ul>
+
+        <div class="code-block">
+# Example: Create namespace with Terraform
+resource "kubernetes_namespace_v1" "envs" {
+  for_each = toset(["development","staging","production"])
+  
+  metadata {
+    name = each.value
+  }
+}
+        </div>
+
+        <div class="section-break"></div>
+
+        <!-- SECTION 5: Deployment Workflow -->
+        <h2 id="workflow">5. Deployment Workflow</h2>
+
+        <h3>End-to-End Deployment Flow</h3>
+
+        <h4>Step 1: Developer Makes Code Change</h4>
+        <div class="code-block">
+# Edit application code
+vi src/main.py
+
+# Add new version field:
+"version": "v1.0.2"
+        </div>
+
+        <h4>Step 2: Commit and Push to Git</h4>
+        <div class="code-block">
+git add src/main.py
+git commit -m "Add version field to API response"
+git push origin master
+        </div>
+
+        <h4>Step 3: GitLab CI/CD Pipeline Runs</h4>
+        <p><strong>Build Stage:</strong></p>
+        <ul>
+            <li>GitLab CI runner executes pipeline</li>
+            <li>Dockerfile is read: build new Docker image</li>
+            <li>Image tagged with commit SHA and "latest"</li>
+        </ul>
+
+        <p><strong>Push Stage:</strong></p>
+        <ul>
+            <li>Docker image pushed to registry: 192.168.0.113:5000/fastapi-demo:latest</li>
+            <li>Image digest stored for reference</li>
+        </ul>
+
+        <p><strong>Deploy Stage:</strong></p>
+        <ul>
+            <li>CI runner connects to K8s cluster via SSH</li>
+            <li>Executes: kubectl rollout restart deployment/fastapi-app</li>
+            <li>Waits for deployment to complete</li>
+            <li>Displays status report</li>
+        </ul>
+
+        <h4>Step 4: Kubernetes Rolls Out New Pods</h4>
+        <ul>
+            <li>Deployment controller sees image change</li>
+            <li>Creates new pods with new image</li>
+            <li>Waits for new pods to be Ready</li>
+            <li>Gracefully terminates old pods</li>
+            <li>Redirects traffic gradually (rolling update)</li>
+        </ul>
+
+        <h4>Step 5: Changes Go Live</h4>
+        <div class="success-box">
+            User refreshes browser at http://192.168.0.203/<br>
+            New version is immediately returned!<br>
+            <br>
+            <strong>Total time:</strong> ~30-60 seconds from push to live
+        </div>
+
+        <h3>Zero-Downtime Deployment Explanation</h3>
+        <p>During deployment, Kubernetes uses a "rolling update" strategy:</p>
+        <ul>
+            <li><strong>maxSurge: 1</strong> - Allow 1 extra pod during update (total 4 pods briefly)</li>
+            <li><strong>maxUnavailable: 1</strong> - Allow max 1 pod down during update (min 2 pods always running)</li>
+        </ul>
+
+        <div class="diagram">
+Timeline of Rolling Update:
+
+T=0s:  [Pod1-old] [Pod2-old] [Pod3-old]  ← Users hitting these
+T=5s:  [Pod1-new] [Pod2-old] [Pod3-old]  ← Pod1 restarted with new image
+T=10s: [Pod1-new] [Pod2-new] [Pod3-old]  ← Pod2 restarted
+T=15s: [Pod1-new] [Pod2-new] [Pod3-new]  ← Pod3 restarted
+T=20s: [Pod1-new] [Pod2-new] [Pod3-new]  ← Deployment complete
+
+⚠️ At NO point are all pods down = zero downtime!
+        </div>
+
+        <div class="section-break"></div>
+
+        <!-- SECTION 6: Benefits -->
+        <h2 id="benefits">6. Benefits & Why This Matters</h2>
+
+        <h3>Key Benefits</h3>
+
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <h4>🔄 High Availability</h4>
+                <p>3 replicas running. If one fails, others keep serving requests. Automatic failover.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>📈 Scalability</h4>
+                <p>Scale to 10 replicas with one config change. Kubernetes handles everything automatically.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>🚀 Zero-Downtime Deployments</h4>
+                <p>Update code without users experiencing downtime. Rolling updates keep service alive.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>📊 Observability</h4>
+                <p>Real-time metrics, dashboards, and alerts. Know exactly what's happening in production.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>🤖 Automation</h4>
+                <p>GitOps workflow: push code → automatic deployment. No manual operations needed.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>🔒 Infrastructure as Code</h4>
+                <p>All infrastructure defined in Git. Version controlled, reproducible, auditable.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>🛠️ Easy Operations</h4>
+                <p>Declarative configuration. Kubernetes ensures desired state is always met.</p>
+            </div>
+            <div class="benefit-card">
+                <h4>💰 Cost Efficient</h4>
+                <p>Right-size resources. No over-provisioning. Pay for what you use.</p>
+            </div>
+        </div>
+
+        <h3>Comparison: Before vs After</h3>
+
+        <table>
+            <tr>
+                <th>Aspect</th>
+                <th>Traditional Deployment</th>
+                <th>With Project Nebula</th>
+            </tr>
+            <tr>
+                <td>Pod Failure</td>
+                <td>Manual restart required, downtime</td>
+                <td>Automatic restart, zero downtime</td>
+            </tr>
+            <tr>
+                <td>Scaling</td>
+                <td>Provision new servers, install software</td>
+                <td>Update config, Kubernetes scales pods</td>
+            </tr>
+            <tr>
+                <td>Deployment</td>
+                <td>Manual: SSH, git pull, restart service</td>
+                <td>Automatic: push code, CI/CD handles</td>
+            </tr>
+            <tr>
+                <td>Monitoring</td>
+                <td>Manual checks, log files</td>
+                <td>Real-time dashboards, auto alerts</td>
+            </tr>
+            <tr>
+                <td>Downtime</td>
+                <td>Common during updates</td>
+                <td>Virtually none (rolling updates)</td>
+            </tr>
+            <tr>
+                <td>Complexity</td>
+                <td>Increases with scale</td>
+                <td>Kubernetes handles complexity</td>
+            </tr>
+        </table>
+
+        <!-- SECTION 7: Operations -->
+        <h2 id="operations">7. Operations & Management</h2>
+
+        <h3>Common Operations</h3>
+
+        <h4>View Application Status</h4>
+        <div class="code-block">
+# Check deployment
+kubectl get deployment -n production
+
+# Check pods
+kubectl get pods -n production -o wide
+
+# Check services
+kubectl get svc -n production
+        </div>
+
+        <h4>View Logs</h4>
+        <div class="code-block">
+# View logs from a pod
+kubectl logs -n production <pod-name>
+
+# Follow logs in real-time
+kubectl logs -n production <pod-name> -f
+
+# View logs from all pods with label
+kubectl logs -n production -l app=fastapi-app -f
+        </div>
+
+        <h4>Scale Application</h4>
+        <div class="code-block">
+# Scale to 5 replicas
+kubectl scale deployment fastapi-app -n production --replicas=5
+
+# Or edit deployment directly
+kubectl edit deployment fastapi-app -n production
+# Change replicas: 3 → 5, save and exit
+        </div>
+
+        <h4>Execute Command in Pod</h4>
+        <div class="code-block">
+# Run bash shell in pod
+kubectl exec -it <pod-name> -n production -- /bin/bash
+
+# Run single command
+kubectl exec <pod-name> -n production -- env | grep POD_IP
+        </div>
+
+        <h4>Restart Pods</h4>
+        <div class="code-block">
+# Restart all pods (rolling restart)
+kubectl rollout restart deployment/fastapi-app -n production
+
+# Wait for rollout to complete
+kubectl rollout status deployment/fastapi-app -n production
+        </div>
+
+        <h3>Monitoring and Troubleshooting</h3>
+
+        <h4>Common Issues and Solutions</h4>
+
+        <div class="warning-box">
+            <strong>Issue: Pod in CrashLoopBackOff state</strong><br>
+            <strong>Cause:</strong> Container crashes immediately after starting<br>
+            <strong>Solution:</strong><br>
+            kubectl logs <pod-name> -n production<br>
+            Check error message, fix application code or configuration
+        </div>
+
+        <div class="warning-box">
+            <strong>Issue: Pod stuck in Pending</strong><br>
+            <strong>Cause:</strong> Not enough resources or node unavailable<br>
+            <strong>Solution:</strong><br>
+            kubectl describe pod <pod-name> -n production<br>
+            Check resources and node status
+        </div>
+
+        <div class="warning-box">
+            <strong>Issue: Service not accessible externally</strong><br>
+            <strong>Cause:</strong> LoadBalancer IP not assigned<br>
+            <strong>Solution:</strong><br>
+            kubectl get svc -n production<br>
+            Check if EXTERNAL-IP is assigned, verify MetalLB running
+        </div>
+
+        <!-- SECTION 8: Access Points -->
+        <h2 id="access">8. Access Points & Connections</h2>
+
+        <h3>External IPs & Ports</h3>
+
+        <table>
+            <tr>
+                <th>Service</th>
+                <th>External IP</th>
+                <th>Port</th>
+                <th>URL</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>ArgoCD</td>
+                <td>192.168.0.202</td>
+                <td>443/80</td>
+                <td>http://192.168.0.202</td>
+                <td>GitOps UI & deployment</td>
+            </tr>
+            <tr>
+                <td>FastAPI</td>
+                <td>192.168.0.203</td>
+                <td>80</td>
+                <td>http://192.168.0.203</td>
+                <td>Application API</td>
+            </tr>
+            <tr>
+                <td>FastAPI Docs</td>
+                <td>192.168.0.203</td>
+                <td>80</td>
+                <td>http://192.168.0.203/docs</td>
+                <td>Swagger UI documentation</td>
+            </tr>
+            <tr>
+                <td>FastAPI Health</td>
+                <td>192.168.0.203</td>
+                <td>80</td>
+                <td>http://192.168.0.203/health</td>
+                <td>Health check endpoint</td>
+            </tr>
+            <tr>
+                <td>FastAPI Metrics</td>
+                <td>192.168.0.203</td>
+                <td>80</td>
+                <td>http://192.168.0.203/metrics</td>
+                <td>Prometheus metrics</td>
+            </tr>
+            <tr>
+                <td>Prometheus</td>
+                <td>192.168.0.204</td>
+                <td>9090</td>
+                <td>http://192.168.0.204:9090</td>
+                <td>Metrics database & UI</td>
+            </tr>
+            <tr>
+                <td>Grafana</td>
+                <td>192.168.0.205</td>
+                <td>3000</td>
+                <td>http://192.168.0.205:3000</td>
+                <td>Dashboards & monitoring</td>
+            </tr>
+        </table>
+
+        <h3>Internal Kubernetes DNS Names</h3>
+        <p>When inside the cluster, pods can reach services by name:</p>
+
+        <table>
+            <tr>
+                <th>Service Name</th>
+                <th>Namespace</th>
+                <th>Full DNS Name</th>
+                <th>Example Usage</th>
+            </tr>
+            <tr>
+                <td>fastapi-app</td>
+                <td>production</td>
+                <td>fastapi-app.production.svc.cluster.local</td>
+                <td>curl http://fastapi-app.production.svc.cluster.local</td>
+            </tr>
+            <tr>
+                <td>prometheus-server</td>
+                <td>monitoring</td>
+                <td>prometheus-server.monitoring.svc.cluster.local</td>
+                <td>curl http://prometheus-server.monitoring.svc.cluster.local:80</td>
+            </tr>
+            <tr>
+                <td>grafana</td>
+                <td>monitoring</td>
+                <td>grafana.monitoring.svc.cluster.local</td>
+                <td>curl http://grafana.monitoring.svc.cluster.local:80</td>
+            </tr>
+        </table>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <hr>
+            <p>Project Nebula - Complete Architecture Guide</p>
+            <p>Generated on: January 14, 2026</p>
+            <p>For detailed commands, see: docs/COMMANDS_REFERENCE.md</p>
+            <p>For setup instructions, see: docs/SETUP_GUIDE.md</p>
+        </div>
+    </div>
+</body>
+</html>

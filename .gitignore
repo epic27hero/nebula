@@ -23,21 +23,21 @@ analysis/
 *.analysis.md
 
 # Docs folder contents (individual files)
-docs/ARCHITECTURE_DIAGRAM_DETAILED.md
-docs/ARCHITECTURE_GUIDE.md
-docs/CI_CD_GUIDE.md
-docs/COMMANDS_REFERENCE.md
-docs/COMPLETE_ACCESS_GUIDE.md
-docs/DEPLOYMENT_GUIDE.md
-docs/FASTAPI_IP_DISPLAY.md
-docs/INDEX.md
-docs/INFRASTRUCTURE_ACCESS.md
-docs/PROJECT_NEBULA_ARCHITECTURE_DOCUMENT.html
-docs/PROJECT_NEBULA_Architecture.docx
-docs/QUICK_REFERENCE.md
-docs/QUICK_START_REFERENCE.md
-docs/README.md
-docs/SCRIPTS_SUMMARY.md
-docs/SETUP_GUIDE.md
+# docs/ARCHITECTURE_DIAGRAM_DETAILED.md
+# docs/ARCHITECTURE_GUIDE.md
+# docs/CI_CD_GUIDE.md
+# docs/COMMANDS_REFERENCE.md
+# docs/COMPLETE_ACCESS_GUIDE.md
+# docs/DEPLOYMENT_GUIDE.md
+# docs/FASTAPI_IP_DISPLAY.md
+# docs/INDEX.md
+# docs/INFRASTRUCTURE_ACCESS.md
+# docs/PROJECT_NEBULA_ARCHITECTURE_DOCUMENT.html
+# docs/PROJECT_NEBULA_Architecture.docx
+# docs/QUICK_REFERENCE.md
+# docs/QUICK_START_REFERENCE.md
+# docs/README.md
+# docs/SCRIPTS_SUMMARY.md
+# docs/SETUP_GUIDE.md
 .env
 .env
