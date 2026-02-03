@@ -154,8 +154,6 @@ update-helm:
 # ============================================================
 # DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
 # ============================================================
-stages:
-  - discovery
 
 print-service-ips:
   stage: discovery
