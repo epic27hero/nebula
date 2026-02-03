@@ -15,6 +15,7 @@ variables:
   HELM_VALUES_FILE: helm/fastapi-app/values.yaml
   GIT_STRATEGY: clone
   GIT_DEPTH: 0
+  REMOTE_SERVER_IP: "192.168.0.113"
 
 # ============================================================
 # PIPELINE RULES — ANY BRANCH, NO CI LOOPS
