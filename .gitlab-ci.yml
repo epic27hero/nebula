@@ -157,24 +157,31 @@ update-helm:
 
 print-service-ips:
   stage: discovery
-  image: bitnami/kubectl:latest # Ensure this image matches your K8s version
   script:
-    - echo "--- Infrastructure Endpoints ---"
-    - printf "%-20s %-15s\n" "SERVICE" "EXTERNAL-IP"
-    - printf "%-20s %-15s\n" "-------" "-----------"
-    
-    # Extracting IPs using jsonpath for clean output
-    - ARGO_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-    - GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-    - PROM_IP=$(kubectl get svc prometheus-server -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-    - FASTAPI_IP=$(kubectl get svc fastapi-app-lb -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-    - GATEWAY_IP=$(kubectl get svc envoy-production-prod-gateway-5e00b6bc -n gateway-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    - echo "🔍 Fetching and storing Infrastructure IPs..."
+    - |
+      ssh -i ~/.ssh/id_rsa root@${REMOTE_SERVER_IP} << 'REMOTECMD'
+        # 1. Assign Variables
+        ARGO_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        PROM_IP=$(kubectl get svc prometheus-server -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        FASTAPI_IP=$(kubectl get svc fastapi-app-lb -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        GATEWAY_IP=$(kubectl get svc envoy-production-prod-gateway-5e00b6bc -n gateway-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-    # Print the results
-    - printf "%-20s %-15s\n" "ArgoCD:" "$ARGO_IP"
-    - printf "%-20s %-15s\n" "Grafana:" "$GRAFANA_IP"
-    - printf "%-20s %-15s\n" "Prometheus:" "$PROM_IP"
-    - printf "%-20s %-15s\n" "FastAPI (Prod):" "$FASTAPI_IP"
-    - printf "%-20s %-15s\n" "Gateway:" "$GATEWAY_IP"
-  # tags:
-  #   - k8s-runner # Replace with your specific GitLab runner tag
+        # 2. Print Variables in a clean format
+        echo "=========================================================="
+        echo "          INFRASTRUCTURE ENDPOINT REPORT                  "
+        echo "=========================================================="
+        printf "%-20s : %s\n" "ArgoCD UI" "http://$ARGO_IP"
+        printf "%-20s : %s\n" "Grafana Dash" "http://$GRAFANA_IP"
+        printf "%-20s : %s\n" "Prometheus" "http://$PROM_IP"
+        printf "%-20s : %s\n" "FastAPI Prod" "http://$FASTAPI_IP"
+        printf "%-20s : %s\n" "Envoy Gateway" "http://$GATEWAY_IP"
+        echo "----------------------------------------------------------"
+
+        # 3. Example of using a variable immediately (Health Check)
+        echo "Verifying FastAPI Version at $FASTAPI_IP..."
+        VERSION=$(curl -s http://$FASTAPI_IP/ | jq -r '.app.version')
+        echo "Current App Version: $VERSION"
+        echo "=========================================================="
+      REMOTECMD  
