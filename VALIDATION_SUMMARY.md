@@ -191,7 +191,7 @@ Once deployed, access your services:
 ArgoCD:     http://192.168.0.202  (admin password in argocd-password.txt)
 FastAPI:    http://192.168.0.203  (API + /metrics endpoint)
 Prometheus: http://192.168.0.204  (Metrics database)
-Grafana:    http://192.168.0.205  (admin / admin123)
+Grafana:    http://192.168.0.206:3000  (admin / grafana)
 ```
 
 ---

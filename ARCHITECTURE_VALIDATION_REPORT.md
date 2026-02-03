@@ -84,7 +84,7 @@ Your Project Nebula architecture has been **fully validated** against the 9-step
       ├─ 192.168.0.202  → ArgoCD UI
       ├─ 192.168.0.203  → FastAPI app
       ├─ 192.168.0.204  → Prometheus
-      ├─ 192.168.0.205  → Grafana
+      ├─ 192.168.0.206  → Grafana
       └─ 192.168.0.210  → Envoy Gateway
 
                               ↓
@@ -109,7 +109,7 @@ Your Project Nebula architecture has been **fully validated** against the 9-step
    ├─ Datasource: Prometheus
    ├─ Dashboard: Kubernetes cluster metrics
    ├─ Dashboard: FastAPI application metrics
-   └─ Accessible via 192.168.0.205
+   └─ Accessible via 192.168.0.206
 
 ```
 
@@ -255,7 +255,7 @@ variable "prometheus_lb_ip" {
 }
 
 variable "grafana_lb_ip" {
-  default = "192.168.0.205"
+  default = "192.168.0.206"
 }
 
 variable "fastapi_lb_ip" {
@@ -374,7 +374,7 @@ dashboards:
 ```
 
 **Access:**
-- URL: `http://192.168.0.205`
+- URL: `http://192.168.0.206:3000`
 - User: `admin`
 - Password: `admin123`
 
@@ -575,7 +575,7 @@ kubectl -n monitoring get pods -w
 ArgoCD:    http://192.168.0.202
 FastAPI:   http://192.168.0.203
 Prometheus: http://192.168.0.204
-Grafana:    http://192.168.0.205
+Grafana:    http://192.168.0.206:3000
 ```
 
 ---

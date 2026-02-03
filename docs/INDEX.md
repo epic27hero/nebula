@@ -179,7 +179,7 @@
 - **ArgoCD UI:** http://192.168.0.202
 - **FastAPI:** http://192.168.0.203
 - **Prometheus:** http://192.168.0.204:9090
-- **Grafana:** http://192.168.0.205:3000 (admin/grafana)
+- **Grafana:** http://192.168.0.206:3000 (admin/grafana)
 
 - **Status Script:** `./scripts/quick-status.sh`
 - **Full Status:** `./scripts/check-all-status.sh`

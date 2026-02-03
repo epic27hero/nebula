@@ -65,7 +65,7 @@ A production-ready, fully-automated Kubernetes platform for deploying containeri
         │  │ MONITORING NAMESPACE                                 │ │
         │  │                                                      │ │
         │  │  Prometheus: 192.168.0.204:9090                    │ │
-        │  │  Grafana: 192.168.0.205:3000                       │ │
+        │  │  Grafana: 192.168.0.206:3000                       │ │
         │  │  (Collecting metrics from all pods)                 │ │
         │  │                                                      │ │
         │  └──────────────────────────────────────────────────────┘ │
@@ -199,7 +199,7 @@ curl http://192.168.0.203/metrics  # Prometheus metrics
 
 # Monitoring
 curl http://192.168.0.204:9090     # Prometheus
-curl http://192.168.0.205:3000     # Grafana (admin/grafana)
+curl http://192.168.0.206:3000     # Grafana (admin/grafana)
 
 # Management
 curl http://192.168.0.202          # ArgoCD UI (see argocd-password.txt)
@@ -305,7 +305,7 @@ kubectl get endpoints -n production
 * Service: HTTP requests, latency, errors
 * Custom: Application-specific metrics
 
-### Grafana Dashboard (192.168.0.205:3000)
+### Grafana Dashboard (192.168.0.206:3000)
 
 **Purpose**: Metrics visualization and alerting
 
@@ -402,15 +402,15 @@ User receives response
   - 192.168.0.202: ArgoCD
   - 192.168.0.203: FastAPI
   - 192.168.0.204: Prometheus
-  - 192.168.0.205: Grafana
-  - 192.168.0.206: Envoy Gateway (optional)
+  - 192.168.0.205: Envoy Production Gateway
+  - 192.168.0.206: Grafana
 
 ### Gateway API (Experimental)
 
 **Status**: Deployed (RBAC permission pending)
 
 * Alternative routing layer (not currently used)
-* Envoy Gateway controller at 192.168.0.206
+* Envoy Gateway controller at 192.168.0.205
 * HTTPRoute resources defined but inactive
 * Primary access: Use MetalLB LoadBalancer IPs
 
@@ -478,7 +478,7 @@ curl http://192.168.0.203/metrics
 curl http://192.168.0.204:9090/api/v1/query?query=up
 
 # Test Grafana
-curl -H "Authorization: Bearer <token>" http://192.168.0.205:3000/api/datasources
+curl -H "Authorization: Bearer <token>" http://192.168.0.206:3000/api/datasources
 
 # Test ArgoCD API
 curl http://192.168.0.202/api/version
@@ -658,7 +658,7 @@ This shows:
 |---------|--------|--------------|------|
 | FastAPI | ✅ Running | 192.168.0.203 | 80 |
 | Prometheus | ✅ Running | 192.168.0.204 | 9090 |
-| Grafana | ✅ Running | 192.168.0.205 | 3000 |
+| Grafana | ✅ Running | 192.168.0.206 | 3000 |
 | ArgoCD | ✅ Running | 192.168.0.202 | 80 |
 | K3s Cluster | ✅ Running | 192.168.0.113 | 6443 |
 | MetalLB | ✅ Running | 192.168.0.201-250 | - |

@@ -2,8 +2,8 @@
 
 ## Problem
 When services are recreated or pods are rescheduled, MetalLB automatically assigns the next available IP from its address pool. This causes service IPs to change unpredictably:
-- ArgoCD was `192.168.0.202` → now `192.168.0.205`
-- This breaks hardcoded URLs in CI/CD pipelines, monitoring, and documentation
+- ArgoCD was `192.168.0.202` → stays `192.168.0.202` (fixed)
+- This requires hardcoded URLs in CI/CD pipelines, monitoring, and documentation to stay consistent
 
 ## Root Cause
 MetalLB's default behavior uses auto-assignment with `AUTO ASSIGN: true`:
@@ -44,25 +44,31 @@ resource "kubernetes_service_v1" "argocd" {
 ```
 
 #### 2. Configurable Variables
-Edit `terraform/terraform.tfvars` to customize IPs:
+Edit `terraform/terraform.tfvars` to customize IPs (current actual assignments):
 
 ```hcl
-argocd_lb_ip     = "192.168.0.205"
-prometheus_lb_ip = "192.168.0.202"
-grafana_lb_ip    = "192.168.0.203"
-fastapi_lb_ip    = "192.168.0.206"
-envoy_lb_ip      = "192.168.0.204"
+traefik_lb_ip           = "192.168.0.200"
+envoy_gateway_system_ip = "192.168.0.201"
+argocd_lb_ip            = "192.168.0.202"
+fastapi_lb_ip           = "192.168.0.203"
+prometheus_lb_ip        = "192.168.0.204"
+envoy_production_ip     = "192.168.0.205"
+grafana_lb_ip           = "192.168.0.206"
+fastapi_app_ip          = "192.168.0.207"
 ```
 
 ### Current Static IP Assignments
 
 | Service | IP | URL |
 |---------|----|----|
-| **ArgoCD** | 192.168.0.205 | http://192.168.0.205 |
-| **Prometheus** | 192.168.0.202 | http://192.168.0.202:9090 |
-| **Grafana** | 192.168.0.203 | http://192.168.0.203:3000 |
-| **FastAPI** | 192.168.0.206 | http://192.168.0.206 |
-| **Envoy Gateway** | 192.168.0.204 | http://192.168.0.204 |
+| **Traefik** | 192.168.0.200 | http://192.168.0.200 |
+| **Envoy Gateway System** | 192.168.0.201 | http://192.168.0.201 |
+| **ArgoCD** | 192.168.0.202 | http://192.168.0.202 |
+| **FastAPI (fastapi-app-lb)** | 192.168.0.203 | http://192.168.0.203 |
+| **Prometheus** | 192.168.0.204 | http://192.168.0.204:9090 |
+| **Envoy Production Gateway** | 192.168.0.205 | http://192.168.0.205 |
+| **Grafana** | 192.168.0.206 | http://192.168.0.206:3000 |
+| **FastAPI (fastapi-app)** | 192.168.0.207 | http://192.168.0.207 |
 | **Traefik** | 192.168.0.201 | http://192.168.0.201 |
 
 ### How to Apply
