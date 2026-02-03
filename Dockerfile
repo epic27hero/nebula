@@ -8,6 +8,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.11-slim
 WORKDIR /app
 
+# Build arguments for metadata (injected by CI/CD)
+ARG APP_VERSION
+ARG BUILD_TIME
+ARG IMAGE_TAG
+
+# Set environment variables from build args (available at runtime)
+ENV APP_VERSION=${APP_VERSION}
+ENV BUILD_TIME=${BUILD_TIME}
+ENV IMAGE_TAG=${IMAGE_TAG}
+
 # Copy python libs AND executables
 COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=builder /usr/local/bin /usr/local/bin

@@ -180,6 +180,20 @@ def readiness():
     }
 
 
+@app.get("/version")
+def version():
+    """Return image and deployment version metadata."""
+    return {
+        "app": APP_NAME,
+        "environment": os.getenv("ENV", "production"),
+        "app_version": os.getenv("APP_VERSION", "unknown"),
+        "image_tag": os.getenv("IMAGE_TAG", "unknown"),
+        "build_time": os.getenv("BUILD_TIME", "unknown"),
+        "pod": socket.gethostname(),
+        "uptime_seconds": int(time.time() - START_TIME)
+    }
+
+
 @app.get("/metrics")
 def metrics():
     return Response(
