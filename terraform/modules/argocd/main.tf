@@ -42,7 +42,8 @@ resource "helm_release" "argocd" {
     yamlencode({
       server = {
         service = {
-          type = "LoadBalancer"
+          type           = "LoadBalancer"
+          loadBalancerIP = "192.168.0.202"
         }
         resources = {
           requests = {
