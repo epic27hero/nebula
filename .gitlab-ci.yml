@@ -158,10 +158,21 @@ update-helm:
 
 print-service-ips:
   stage: discovery
+  before_script: |
+      grep -q "Host main-113" ~/.ssh/config || cat <<'EOF' >> ~/.ssh/config
+      Host main-113
+        HostName 192.168.0.113
+        User root
+        IdentityFile ~/.ssh/id_main_113
+        IdentitiesOnly yes
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+      EOF
+
   script:
     - echo "🔍 Fetching and storing Infrastructure IPs..."
     - |
-      ssh root@${REMOTE_SERVER_IP} << 'REMOTECMD'
+      ssh main-113 << 'REMOTECMD'
         # 1. Assign Variables
         ARGO_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
