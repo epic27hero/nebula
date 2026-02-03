@@ -161,7 +161,7 @@ print-service-ips:
   script:
     - echo "🔍 Fetching and storing Infrastructure IPs..."
     - |
-      ssh -i ~/.ssh/id_rsa root@${REMOTE_SERVER_IP} << 'REMOTECMD'
+      ssh root@${REMOTE_SERVER_IP} << 'REMOTECMD'
         # 1. Assign Variables
         ARGO_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
