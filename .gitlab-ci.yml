@@ -155,6 +155,63 @@ update-helm:
 # ============================================================
 # DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
 # ============================================================
+deploy:
+  stage: deploy
+  environment:
+    name: ${CI_COMMIT_BRANCH}
+    action: start
+  script: |
+    echo "🚀 DEPLOY STAGE (GitOps)"
+
+    echo "Environment : ${CI_COMMIT_BRANCH}"
+    echo "Image       : ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+    echo "ℹ️ No kubectl here"
+    echo "ℹ️ ArgoCD reconciles from Git"
+
+    echo "✅ DEPLOY REGISTERED"
+
+# ============================================================
+# RELEASE — AUDIT + TRACEABILITY
+# ============================================================
+release:
+  stage: release
+  script: |
+    set -e
+
+    echo "🏷️ RELEASE STAGE (Nebula Tag)"
+
+    NEBULA_TAG="nebula-v${CI_PIPELINE_ID}-${IMAGE_TAG}"
+
+    echo "📌 Creating tag: ${NEBULA_TAG}"
+
+    git tag -a "${NEBULA_TAG}" -m "
+    Nebula Release: ${NEBULA_TAG}
+
+    Image:
+      ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
+
+    Branch:
+      ${CI_COMMIT_BRANCH}
+
+    Commit:
+      ${CI_COMMIT_SHA}
+
+    Pipeline:
+      ${CI_PIPELINE_URL}
+    "
+
+    echo "🔐 Using PAT-based push for tag"
+    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
+
+    git push "${GIT_PUSH_URL}" "${NEBULA_TAG}"
+
+    echo "✅ NEBULA RELEASE CREATED → ${NEBULA_TAG}"
+
+# ============================================================
+# DISCOVERY — SERVICE ENDPOINT DISCOVERY WITH ERROR HANDLING
+# ============================================================
+
 
 print-service-ips:
   stage: discovery

@@ -15,7 +15,7 @@ from prometheus_client import Counter, Histogram, generate_latest
 # App metadata
 # -----------------------------------------------------------------------------
 APP_NAME = "fastapi-demo"
-APP_VERSION = os.getenv("APP_VERSION", "v2.0.17")
+APP_VERSION = os.getenv("APP_VERSION", "v2.0.19")
 BUILD_TIME = os.getenv("BUILD_TIME", "unknown")
 START_TIME = time.time()
 
