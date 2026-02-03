@@ -159,6 +159,27 @@ update-helm:
 print-service-ips:
   stage: discovery
   before_script: |
+      # ------------------------------------------------------------
+      # SSH directory setup
+      # ------------------------------------------------------------
+      mkdir -p ~/.ssh
+      chmod 700 ~/.ssh
+      ls -la ~/.ssh/
+
+      # ------------------------------------------------------------
+      # Write private SSH key from GitLab CI variable
+      # ------------------------------------------------------------
+      echo "$SSH_PRIVATE_KEY_MAIN_113" > ~/.ssh/id_main_113
+      chmod 600 ~/.ssh/id_main_113
+
+      # ------------------------------------------------------------
+      # Validate key format
+      # ------------------------------------------------------------
+      ssh-keygen -lf ~/.ssh/id_main_113
+
+      # ------------------------------------------------------------
+      # SSH config for main-113 (idempotent)
+      # ------------------------------------------------------------
       grep -q "Host main-113" ~/.ssh/config || cat <<'EOF' >> ~/.ssh/config
       Host main-113
         HostName 192.168.0.113
