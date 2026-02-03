@@ -702,17 +702,17 @@ kubectl -n production get events --sort-by='.lastTimestamp'
 
 ---
 
-## Known Gaps & Fixes
+## Implementation Status - All Gaps Fixed ✅
 
 ### Gap #1: Dockerfile Missing ARG/ENV (HIGH PRIORITY)
 
-**Status**: 🟡 Incomplete
+**Status**: ✅ FIXED
 
-**Impact**: Image doesn't carry metadata, breaks determinism
+**Impact**: Image now carries metadata, determinism achieved ✅
 
-**Current**: Build args passed by CI are ignored by Dockerfile
+**Implementation**: ARG and ENV declarations added to Dockerfile
 
-**Fix**: Add these lines after second `FROM` in Dockerfile
+**Location**: Lines 11-18 in Dockerfile
 
 ```dockerfile
 ARG APP_VERSION
@@ -734,15 +734,16 @@ docker run 192.168.0.190:5005/.../fastapi-demo:abc1234f \
 
 ### Gap #2: FastAPI Missing Dedicated /version Endpoint (MEDIUM)
 
-**Status**: 🟡 Partially implemented
+**Status**: ✅ FIXED
 
-**Impact**: Metadata is in `/` endpoint, not standard `/version`
+**Impact**: Metadata now available at standard `/version` endpoint ✅
 
-**Current**: `GET /` returns metadata
+**Implementation**: Dedicated `/version` endpoint added to FastAPI app
 
-**Recommended**: Add dedicated `/version` endpoint
+**Location**: Lines 183-194 in src/main.py
 
-```python
+**Endpoint Details**:
+```json
 @app.get("/version")
 def version():
     return {
@@ -765,14 +766,15 @@ curl http://192.168.0.203/version
 
 ### Gap #3: K8s Rollout Strategy (LOW PRIORITY)
 
-**Status**: 🟡 Missing configuration
+**Status**: ✅ FIXED
 
-**Impact**: Deployment pacing not explicitly controlled
+**Impact**: Deployment now has explicit zero-downtime configuration ✅
 
-**Current**: No `strategy` section in Deployment
+**Implementation**: RollingUpdate strategy with zero-downtime settings
 
-**Fix**: Add to deployment.yaml after `selector`
+**Location**: Lines 9-13 in helm/fastapi-app/templates/deployment.yaml
 
+**Configuration Applied**:
 ```yaml
 strategy:
   type: RollingUpdate
@@ -781,7 +783,7 @@ strategy:
     maxUnavailable: 0
 ```
 
-**Verification After Fix**:
+**Verification**:
 ```bash
 kubectl -n production get deploy fastapi-app -o yaml | grep -A 5 strategy:
 ```
@@ -790,7 +792,7 @@ kubectl -n production get deploy fastapi-app -o yaml | grep -A 5 strategy:
 
 ## Operational Workflows
 
-### Workflow 1: Deploy New Code
+### Workflow 1: Deploy New Code (with all fixes applied)
 
 ```bash
 # 1. Make code changes

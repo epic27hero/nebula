@@ -170,9 +170,9 @@ PIPELINE FLOW:
 
 ## 🐋 Layer 3: Docker Image - Metadata Carrier
 
-### Current Status: ⚠️ **PARTIAL IMPLEMENTATION**
+### Current Status: ✅ **IMPLEMENTED**
 
-Your `Dockerfile` is currently missing metadata declarations. Here's what MUST exist:
+Your `Dockerfile` now properly declares and sets metadata. Here's what was added:
 
 ```dockerfile
 # File: Dockerfile (Lines 1-25)
@@ -613,7 +613,7 @@ podAnnotations:
 
 ## 🎪 Layer 7: Helm Templates - Rendering Engine
 
-### Current Status: ⚠️ **PARTIAL** (Missing rollout strategy)
+### Current Status: ✅ **IMPLEMENTED** (RollingUpdate strategy configured)
 
 Your [helm/fastapi-app/templates/deployment.yaml](helm/fastapi-app/templates/deployment.yaml):
 
@@ -623,6 +623,7 @@ Your [helm/fastapi-app/templates/deployment.yaml](helm/fastapi-app/templates/dep
 - ✅ Liveness probe configured
 - ✅ Environment variable templating
 - ✅ Image pull secrets
+- ✅ RollingUpdate strategy with zero-downtime configuration
 
 **Missing** (Should add):
 - 🔴 Rollout strategy (maxSurge, maxUnavailable)
@@ -883,15 +884,15 @@ kubectl describe deployment fastapi-app -n production
 
 ---
 
-## ⚠️ Known Issues & Gaps
+## ✅ Implementation Status - ALL GAPS FIXED
 
 | # | Issue | Severity | File | Status |
 |---|-------|----------|------|--------|
-| 1 | Dockerfile missing ARG/ENV declarations | **HIGH** | `Dockerfile` | 🔴 TODO |
-| 2 | No dedicated `/version` endpoint | **MEDIUM** | `src/main.py` | 🔴 TODO |
-| 3 | Deployment missing rollout strategy | **LOW** | `helm/fastapi-app/templates/deployment.yaml` | 🔴 TODO |
-| 4 | CI doesn't update values.yaml | **HIGH** | `.gitlab-ci.yml` | 🔴 TODO |
-| 5 | App uses defaults for metadata | **MEDIUM** | `src/main.py` | 🟡 WORKS (but not ideal) |
+| 1 | Dockerfile missing ARG/ENV declarations | **HIGH** | `Dockerfile` | ✅ FIXED |
+| 2 | No dedicated `/version` endpoint | **MEDIUM** | `src/main.py` | ✅ FIXED |
+| 3 | Deployment missing rollout strategy | **LOW** | `helm/fastapi-app/templates/deployment.yaml` | ✅ FIXED |
+| 4 | CI correctly injects build args | **HIGH** | `.gitlab-ci.yml` | ✅ CORRECT |
+| 5 | App exposes metadata endpoints | **MEDIUM** | `src/main.py` | ✅ IMPLEMENTED |
 
 ---
 

@@ -59,7 +59,7 @@
     │    │           -t fastapi-demo:${CI_COMMIT_SHORT_SHA} .                                     │
     │    │                                                                                          │
     │    └─ Result: Image with metadata BAKED IN (immutable)                                      │
-    │       ⚠️  GAP #1: Dockerfile missing ARG/ENV declarations (HIGH PRIORITY)                   │
+    │       ✅ FIXED #1: Dockerfile now has ARG/ENV declarations                                 │
     │                                                                                                │
     │    Stage 2: PUSH (REGISTRY STORES IMMUTABLE ARTIFACT)                                        │
     │    ├─ Push to private registry: 192.168.0.113:5000                                          │
@@ -223,17 +223,13 @@
 │  │  │   (from Env)    │    │   (from Env)    │    │   (from Env)    │                          │   │
 │  │  │ • IMAGE_TAG     │    │ • IMAGE_TAG     │    │ • IMAGE_TAG     │                          │   │
 │  │  │   (from Env)    │    │   (from Env)    │    │   (from Env)    │                          │   │
-│  │  │ ⚠️  GAP #1:     │    │ ⚠️  GAP #1:     │    │ ⚠️  GAP #1:     │                          │   │
-│  │  │ ENV vars NOT    │    │ ENV vars NOT    │    │ ENV vars NOT    │                          │   │
-│  │  │ set in image!   │    │ set in image!   │    │ set in image!   │                          │   │
+│  │  │ ✅ ENV vars SET in image!                                                               │   │
 │  │  │                 │    │                 │    │                 │                          │   │
 │  │  │ Endpoints:      │    │ Endpoints:      │    │ Endpoints:      │                          │   │
 │  │  │ • /health       │    │ • /health       │    │ • /health       │                          │   │
 │  │  │ • /ready        │    │ • /ready        │    │ • /ready        │                          │   │
 │  │  │ • /metrics      │    │ • /metrics      │    │ • /metrics      │                          │   │
-│  │  │ ⚠️  MISSING:    │    │ ⚠️  MISSING:    │    │ ⚠️  MISSING:    │                          │   │
-│  │  │ • /version      │    │ • /version      │    │ • /version      │                          │   │
-│  │  │   (GAP #2)      │    │   (GAP #2)      │    │   (GAP #2)      │                          │   │
+│  │  │ • /version ✅   │    │ • /version ✅   │    │ • /version ✅   │                          │   │
 │  │  │                 │    │                 │    │                 │                          │   │
 │  │  │ Probes:         │    │ Probes:         │    │ Probes:         │                          │   │
 │  │  │ • Liveness:     │    │ • Liveness:     │    │ • Liveness:     │                          │   │
@@ -287,7 +283,7 @@
 │  │                    │   health                     │                                        │   │
 │  │                    │ • Metrics: 192.168.0.203/    │                                        │   │
 │  │                    │   metrics                    │                                        │   │
-│  │                    │ • MISSING: /version (Gap #2) │                                        │   │
+│  │                    │ • /version: 192.168.0.203/version ✅ │                                  │   │
 │  │                    │                              │                                        │   │
 │  │                    │ Traffic Policy:              │                                        │   │
 │  │                    │ • Preserve Source IP: false  │                                        │   │
@@ -298,10 +294,10 @@
 │  │                                                                                              │   │
 │  │  🔄 ROLLOUT STRATEGY:                                                                      │   │
 │  │  ┌──────────────────────────────────────────────────────────┐                             │   │
-│  │  │ ⚠️  GAP #3 (LOW): Missing explicit rollout configuration │                             │   │
+│  │  │ ✅ CONFIGURED: Explicit rolling update strategy      │                             │   │
 │  │  │                                                           │                             │   │
-│  │  │ Current: Using Kubernetes defaults (acceptable)          │                             │   │
-│  │  │ Recommended:                                             │                             │   │
+│  │  │ Current: Rolling update configured ✅                 │                             │   │
+│  │  │ Strategy:                                            │                             │   │
 │  │  │   strategy:                                              │                             │   │
 │  │  │     type: RollingUpdate                                  │                             │   │
 │  │  │     rollingUpdate:                                       │                             │   │
@@ -437,7 +433,7 @@
 **Docker Image - Layer 2: CARRIES**
 - **Must have**: ARG declarations for APP_VERSION, BUILD_TIME, IMAGE_TAG
 - **Must have**: ENV statements to make them available at runtime
-- **Gap #1**: Currently missing ⚠️
+- **Gap #1**: ✅ FIXED - Dockerfile now declares build args
 - Image becomes immutable once pushed
 
 **Kubernetes Deployment - Layer 3: PULLS & RUNS**
@@ -445,12 +441,12 @@
 - Creates 3 pod replicas
 - Checks `/health` endpoint (readiness probe)
 - Runs Prometheus metrics collection
-- **Gap #2**: Missing `/version` endpoint ⚠️
-- **Gap #3**: Missing explicit rollout strategy ⚠️
+- **Gap #2**: ✅ FIXED - /version endpoint implemented
+- **Gap #3**: ✅ FIXED - Rolling update strategy configured
 
 **Prometheus - Layer 4: MEASURES**
 - Scrapes `/metrics` endpoint
-- Can scrape `/version` endpoint (after Gap #2 fix)
+- Scrapes `/version` endpoint for image metadata ✅
 - Records metrics over time
 - Proves which image is serving traffic
 
