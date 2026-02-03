@@ -169,41 +169,40 @@ print-service-ips:
     # ------------------------------------------------------------
     # SSH directory (ABSOLUTE PATHS)
     # ------------------------------------------------------------
-    mkdir -p /home/gitlab-runner/.ssh
-    chmod 700 /home/gitlab-runner/.ssh
+    mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
 
     echo "--- SSH DIR OWNERSHIP ---"
-    ls -ld /home/gitlab-runner/.ssh
-    ls -la /home/gitlab-runner/.ssh
-
+    ls -ld ~/.ssh
+    ls -la ~/.ssh
     # ------------------------------------------------------------
     # FORCE reset SSH key (prevents root-owned file issue)
     # ------------------------------------------------------------
-    rm -f /home/gitlab-runner/.ssh/id_main_113
-    echo "$SSH_PRIVATE_KEY_MAIN_113" > /home/gitlab-runner/.ssh/id_main_113
-    chmod 600 /home/gitlab-runner/.ssh/id_main_113
+    rm -f ~/.ssh/id_main_113
+    echo "$SSH_PRIVATE_KEY_MAIN_113" > ~/.ssh/id_main_113
+    chmod 600 ~/.ssh/id_main_113
 
     # ------------------------------------------------------------
     # Validate key format
     # ------------------------------------------------------------
-    ssh-keygen -lf /home/gitlab-runner/.ssh/id_main_113
+    ssh-keygen -lf ~/.ssh/id_main_113
 
     # ------------------------------------------------------------
     # SSH config (IDEMPOTENT)
     # ------------------------------------------------------------
-    if ! grep -q "Host main-113" /home/gitlab-runner/.ssh/config 2>/dev/null; then
-      cat <<'EOF' >> /home/gitlab-runner/.ssh/config
+    if ! grep -q "Host main-113" ~/.ssh/config 2>/dev/null; then
+      cat <<'EOF' >> ~/.ssh/config
     Host main-113
       HostName 192.168.0.113
       User root
-      IdentityFile /home/gitlab-runner/.ssh/id_main_113
+      IdentityFile ~/.ssh/id_main_113
       IdentitiesOnly yes
       StrictHostKeyChecking no
       UserKnownHostsFile /dev/null
     EOF
     fi
 
-    chmod 600 /home/gitlab-runner/.ssh/config
+    chmod 600 ~/.ssh/config
 
     echo "===== SSH PRE-FLIGHT COMPLETE ====="
   script:
