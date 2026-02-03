@@ -154,140 +154,29 @@ update-helm:
 # ============================================================
 # DEPLOY — ENVIRONMENT MARKER (NO KUBECTL)
 # ============================================================
-deploy:
-  stage: deploy
-  environment:
-    name: ${CI_COMMIT_BRANCH}
-    action: start
-  script: |
-    echo "🚀 DEPLOY STAGE (GitOps)"
+stages:
+  - discovery
 
-    echo "Environment : ${CI_COMMIT_BRANCH}"
-    echo "Image       : ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-    echo "ℹ️ No kubectl here"
-    echo "ℹ️ ArgoCD reconciles from Git"
-
-    echo "✅ DEPLOY REGISTERED"
-
-# ============================================================
-# RELEASE — AUDIT + TRACEABILITY
-# ============================================================
-release:
-  stage: release
-  script: |
-    set -e
-
-    echo "🏷️ RELEASE STAGE (Nebula Tag)"
-
-    NEBULA_TAG="nebula-v${CI_PIPELINE_ID}-${IMAGE_TAG}"
-
-    echo "📌 Creating tag: ${NEBULA_TAG}"
-
-    git tag -a "${NEBULA_TAG}" -m "
-    Nebula Release: ${NEBULA_TAG}
-
-    Image:
-      ${CI_REGISTRY}/${CI_PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
-
-    Branch:
-      ${CI_COMMIT_BRANCH}
-
-    Commit:
-      ${CI_COMMIT_SHA}
-
-    Pipeline:
-      ${CI_PIPELINE_URL}
-    "
-
-    echo "🔐 Using PAT-based push for tag"
-    GIT_PUSH_URL="http://oauth2:${PROJECT_NEBULA_ACCESS_TOKEN}@${GITLAB_HOST}:${GITLAB_PORT}/${CI_PROJECT_PATH}.git"
-
-    git push "${GIT_PUSH_URL}" "${NEBULA_TAG}"
-
-    echo "✅ NEBULA RELEASE CREATED → ${NEBULA_TAG}"
-
-# ============================================================
-# DISCOVERY — SERVICE ENDPOINT DISCOVERY WITH ERROR HANDLING
-# ============================================================
 print-service-ips:
   stage: discovery
-  image: bitnami/kubectl:latest
-  script: |
-    set +e  # Continue on errors to show results
+  image: bitnami/kubectl:latest # Ensure this image matches your K8s version
+  script:
+    - echo "--- Infrastructure Endpoints ---"
+    - printf "%-20s %-15s\n" "SERVICE" "EXTERNAL-IP"
+    - printf "%-20s %-15s\n" "-------" "-----------"
     
-    echo "🔍 DISCOVERY STAGE - Infrastructure Endpoints"
-    echo "=========================================="
-    
-    # Verify kubectl is available
-    if ! command -v kubectl &> /dev/null; then
-      echo "❌ ERROR: kubectl is not available"
-      exit 1
-    fi
-    
-    echo "✅ kubectl found: $(kubectl version --client --short 2>/dev/null || echo 'version check failed')"
-    echo ""
-    
-    # Function to safely extract service IP with error handling
-    get_service_ip() {
-      local SERVICE_NAME=$1
-      local NAMESPACE=$2
-      local DISPLAY_NAME=$3
-      
-      # Check if service exists
-      if ! kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" &>/dev/null; then
-        echo "⚠️  $DISPLAY_NAME: SERVICE NOT FOUND ($SERVICE_NAME in ns/$NAMESPACE)"
-        return 1
-      fi
-      
-      # Extract IP
-      local IP=$(kubectl get svc "$SERVICE_NAME" -n "$NAMESPACE" \
-        -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-      
-      # Handle pending or missing IPs
-      if [ -z "$IP" ]; then
-        echo "⏳ $DISPLAY_NAME: IP NOT YET ASSIGNED (service pending)"
-        return 1
-      fi
-      
-      echo "✅ $DISPLAY_NAME: $IP"
-      return 0
-    }
-    
-    echo "--- Service IPs ---"
-    echo ""
-    
-    # Collect all results
-    ARGO_RESULT=0
-    GRAFANA_RESULT=0
-    PROM_RESULT=0
-    FASTAPI_RESULT=0
-    GATEWAY_RESULT=0
-    
-    # Attempt to retrieve each service IP
-    get_service_ip "argocd-server" "argocd" "ArgoCD" || ARGO_RESULT=$?
-    get_service_ip "grafana" "monitoring" "Grafana" || GRAFANA_RESULT=$?
-    get_service_ip "prometheus-server" "monitoring" "Prometheus" || PROM_RESULT=$?
-    get_service_ip "fastapi-app-lb" "production" "FastAPI (Prod)" || FASTAPI_RESULT=$?
-    get_service_ip "envoy-production-prod-gateway-5e00b6bc" "gateway-system" "Gateway" || GATEWAY_RESULT=$?
-    
-    echo ""
-    
-    # Summary
-    FAILED_COUNT=$((ARGO_RESULT + GRAFANA_RESULT + PROM_RESULT + FASTAPI_RESULT + GATEWAY_RESULT))
-    
-    if [ $FAILED_COUNT -eq 5 ]; then
-      echo "❌ ERROR: No services found. Cluster may not be properly configured."
-      exit 1
-    elif [ $FAILED_COUNT -gt 0 ]; then
-      echo "⚠️  WARNING: $FAILED_COUNT service(s) unavailable or IP not assigned yet"
-      echo "💡 Services may still be starting. Check cluster status with:"
-      echo "   kubectl get svc -A"
-      exit 0  # Don't fail the pipeline if some services are missing
-    else
-      echo "✅ All services are accessible"
-      exit 0
-    fi
-  allow_failure: true  # This stage won't block pipeline on failure
+    # Extracting IPs using jsonpath for clean output
+    - ARGO_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    - GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    - PROM_IP=$(kubectl get svc prometheus-server -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    - FASTAPI_IP=$(kubectl get svc fastapi-app-lb -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    - GATEWAY_IP=$(kubectl get svc envoy-production-prod-gateway-5e00b6bc -n gateway-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+    # Print the results
+    - printf "%-20s %-15s\n" "ArgoCD:" "$ARGO_IP"
+    - printf "%-20s %-15s\n" "Grafana:" "$GRAFANA_IP"
+    - printf "%-20s %-15s\n" "Prometheus:" "$PROM_IP"
+    - printf "%-20s %-15s\n" "FastAPI (Prod):" "$FASTAPI_IP"
+    - printf "%-20s %-15s\n" "Gateway:" "$GATEWAY_IP"
   # tags:
-  #   - k8s-runner
+  #   - k8s-runner # Replace with your specific GitLab runner tag
