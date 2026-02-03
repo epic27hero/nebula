@@ -289,5 +289,5 @@ print-service-ips:
       exit 0
     fi
   allow_failure: true  # This stage won't block pipeline on failure
-  tags:
-    - k8s-runner
+  # tags:
+  #   - k8s-runner
